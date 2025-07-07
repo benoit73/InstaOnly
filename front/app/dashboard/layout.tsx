@@ -2,7 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Instagram, LayoutDashboard, Users, ImageIcon, Menu } from "lucide-react"
+import { Instagram, LayoutDashboard, Users, ImageIcon, Menu, Sparkles } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 export const metadata: Metadata = {
@@ -55,6 +55,12 @@ export default function DashboardLayout({
                       Photos
                     </Button>
                   </Link>
+                  <Link href="/dashboard/generate">
+                    <Button variant="ghost" className="w-full justify-start">
+                      <Sparkles className="mr-2 h-5 w-5" />
+                      Générer
+                    </Button>
+                  </Link>
                 </nav>
               </div>
             </SheetContent>
@@ -80,6 +86,12 @@ export default function DashboardLayout({
               <Button variant="ghost" className="w-full justify-start">
                 <ImageIcon className="mr-2 h-5 w-5" />
                 Photos
+              </Button>
+            </Link>
+            <Link href="/dashboard/generate">
+              <Button variant="ghost" className="w-full justify-start">
+                <Sparkles className="mr-2 h-5 w-5" />
+                Générer
               </Button>
             </Link>
           </nav>

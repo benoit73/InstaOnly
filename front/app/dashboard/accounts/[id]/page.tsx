@@ -1,12 +1,17 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Switch } from "@/components/ui/switch"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import {
   PlusCircle,
   Edit,
@@ -19,19 +24,52 @@ import {
   Heart,
   Wifi,
   WifiOff,
+  CheckCircle,
+  AlertCircle,
+  Save,
+  X,
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 
 export default function AccountDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const accountId = params.id
 
   // État pour le statut de connexion
-  const [isConnected, setIsConnected] = useState(accountId !== "3") // Simuler que le compte 3 est déconnecté
+  const [isConnected, setIsConnected] = useState(accountId !== "3")
+  const [showAlert, setShowAlert] = useState(false)
+  const [alertMessage, setAlertMessage] = useState("")
+  const [alertType, setAlertType] = useState<"success" | "error">("success")
+  
+  // États pour la modification du compte
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editForm, setEditForm] = useState({
+    username: "",
+    bio: "",
+    avatar: ""
+  })
+
+  // Vérifier les paramètres d'URL pour les messages OAuth
+  useEffect(() => {
+    const success = searchParams.get('success')
+    const error = searchParams.get('error')
+    
+    if (success) {
+      setAlertMessage("Connexion Instagram réussie !")
+      setAlertType("success")
+      setShowAlert(true)
+      setIsConnected(true)
+    } else if (error) {
+      setAlertMessage(`Erreur de connexion: ${error}`)
+      setAlertType("error")
+      setShowAlert(true)
+    }
+  }, [searchParams])
 
   // Données simulées du compte
-  const account = {
+  const [account, setAccount] = useState({
     id: accountId,
     username: accountId === "1" ? "mode_paris" : accountId === "2" ? "design_studio" : "travel_photos",
     followers: accountId === "1" ? "15.2K" : accountId === "2" ? "8.7K" : "23.5K",
@@ -44,7 +82,18 @@ export default function AccountDetailPage({ params }: { params: { id: string } }
         : accountId === "2"
           ? "Studio de design créatif | Creative design studio"
           : "Photographie de voyage | Travel photography",
-  }
+  })
+
+  // Initialiser le formulaire de modification quand le dialog s'ouvre
+  useEffect(() => {
+    if (isEditDialogOpen) {
+      setEditForm({
+        username: account.username,
+        bio: account.bio,
+        avatar: account.avatar
+      })
+    }
+  }, [isEditDialogOpen, account])
 
   // Données simulées des photos pour ce compte
   const photos = [
@@ -111,8 +160,68 @@ export default function AccountDetailPage({ params }: { params: { id: string } }
     setIsConnected(!isConnected)
   }
 
+  const handleInstagramConnect = () => {
+    // Rediriger vers l'endpoint OAuth du backend
+    window.location.href = 'http://localhost:5000/auth/instagram'
+  }
+
+  // Fonction pour ouvrir le dialog de modification
+  const handleEditAccount = () => {
+    if (!isConnected) {
+      setAlertMessage("Vous devez être connecté pour modifier le compte")
+      setAlertType("error")
+      setShowAlert(true)
+      return
+    }
+    setIsEditDialogOpen(true)
+  }
+
+  // Fonction pour sauvegarder les modifications
+  const handleSaveAccount = async () => {
+    try {
+      // Simuler un appel API (remplacer par votre vraie API)
+      // const response = await fetch(`/api/accounts/${accountId}`, {
+      //   method: 'PUT',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify(editForm)
+      // })
+
+      // Pour la démo, on met à jour directement l'état
+      setAccount(prev => ({
+        ...prev,
+        username: editForm.username,
+        bio: editForm.bio,
+        avatar: editForm.avatar
+      }))
+
+      setIsEditDialogOpen(false)
+      setAlertMessage("Compte modifié avec succès !")
+      setAlertType("success")
+      setShowAlert(true)
+    } catch (error) {
+      setAlertMessage("Erreur lors de la modification du compte")
+      setAlertType("error")
+      setShowAlert(true)
+    }
+  }
+
+  // Fonction pour gérer les changements du formulaire
+  const handleFormChange = (field: string, value: string) => {
+    setEditForm(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
   return (
     <div className="container p-4 md:p-8 space-y-8">
+      {showAlert && (
+        <Alert className={alertType === "success" ? "border-green-500" : "border-red-500"}>
+          {alertType === "success" ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+          <AlertDescription>{alertMessage}</AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex items-center justify-between">
         <Button variant="outline" size="sm" onClick={() => router.push("/dashboard/accounts")}>
           Retour aux comptes
@@ -124,10 +233,68 @@ export default function AccountDetailPage({ params }: { params: { id: string } }
               Ajouter une photo
             </Button>
           </Link>
-          <Button variant="outline">
-            <Edit className="mr-2 h-4 w-4" />
-            Modifier le compte
-          </Button>
+          
+          {/* Dialog pour modifier le compte */}
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" onClick={handleEditAccount}>
+                <Edit className="mr-2 h-4 w-4" />
+                Modifier le compte
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Modifier le compte @{account.username}</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="username" className="text-right">
+                    Nom d'utilisateur
+                  </Label>
+                  <Input
+                    id="username"
+                    value={editForm.username}
+                    onChange={(e) => handleFormChange('username', e.target.value)}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="bio" className="text-right">
+                    Biographie
+                  </Label>
+                  <Textarea
+                    id="bio"
+                    value={editForm.bio}
+                    onChange={(e) => handleFormChange('bio', e.target.value)}
+                    className="col-span-3"
+                    rows={3}
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="avatar" className="text-right">
+                    Avatar URL
+                  </Label>
+                  <Input
+                    id="avatar"
+                    value={editForm.avatar}
+                    onChange={(e) => handleFormChange('avatar', e.target.value)}
+                    className="col-span-3"
+                    placeholder="https://..."
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  <X className="mr-2 h-4 w-4" />
+                  Annuler
+                </Button>
+                <Button onClick={handleSaveAccount}>
+                  <Save className="mr-2 h-4 w-4" />
+                  Sauvegarder
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -164,10 +331,26 @@ export default function AccountDetailPage({ params }: { params: { id: string } }
                   <span className="font-bold">{account.following}</span> abonnements
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm">Statut du compte:</span>
-                <Switch id="connection-toggle" checked={isConnected} onCheckedChange={toggleConnectionStatus} />
-                <span className="text-sm font-medium">{isConnected ? "Connecté" : "Déconnecté"}</span>
+              
+              {/* Configuration du compte avec bouton OAuth */}
+              <div className="flex flex-col space-y-4 pt-4">
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm">Statut du compte:</span>
+                  <Switch id="connection-toggle" checked={isConnected} onCheckedChange={toggleConnectionStatus} />
+                  <span className="text-sm font-medium">{isConnected ? "Connecté" : "Déconnecté"}</span>
+                </div>
+                
+                {!isConnected && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      Connectez-vous avec Instagram pour gérer ce compte
+                    </p>
+                    <Button onClick={handleInstagramConnect} className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
+                      <Instagram className="mr-2 h-4 w-4" />
+                      Se connecter avec Instagram
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

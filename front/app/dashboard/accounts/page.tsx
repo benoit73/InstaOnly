@@ -7,8 +7,11 @@ import { PlusCircle, Edit, Trash2, Instagram, BarChart3, WifiOff, Wifi } from "l
 import { Switch } from "@/components/ui/switch"
 import Link from "next/link"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 
 export default function AccountsPage() {
+  const router = useRouter()
+  
   // Données simulées des comptes Instagram avec statut de connexion
   const [accounts, setAccounts] = useState([
     {
@@ -47,6 +50,18 @@ export default function AccountsPage() {
         return account
       }),
     )
+  }
+
+  // Fonction pour modifier un compte
+  const handleEditAccount = (accountId: number) => {
+    router.push(`/dashboard/accounts/${accountId}`)
+  }
+
+  // Fonction pour supprimer un compte
+  const handleDeleteAccount = (accountId: number) => {
+    if (confirm("Êtes-vous sûr de vouloir supprimer ce compte ?")) {
+      setAccounts(accounts.filter(account => account.id !== accountId))
+    }
   }
 
   return (
@@ -127,11 +142,20 @@ export default function AccountsPage() {
                 </Button>
               </Link>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleEditAccount(account.id)}
+                >
                   <Edit className="mr-2 h-4 w-4" />
                   Modifier
                 </Button>
-                <Button variant="outline" size="sm" className="text-red-500">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-red-500"
+                  onClick={() => handleDeleteAccount(account.id)}
+                >
                   <Trash2 className="mr-2 h-4 w-4" />
                   Supprimer
                 </Button>
