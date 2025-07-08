@@ -18,6 +18,10 @@ const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 8080;
 
+app.get('/mycoolapp/', function(req, res){
+    res.send("Hello from the root application URL");
+});
+
 // Configuration CORS
 app.use(cors({
   origin: [
