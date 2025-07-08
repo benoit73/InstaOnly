@@ -7,7 +7,7 @@ import { PlusCircle, Edit, Trash2, History } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useState, useEffect } from "react"
-import { photoService, Photo } from "@/services/photoService"
+import { photoService, Photo } from "@/services/imageService"
 import { ImageDisplay } from "@/components/ui/image-display"
 
 export default function PhotosPage() {
