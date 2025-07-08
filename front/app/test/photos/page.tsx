@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { photoService, Photo } from "@/services/photoService"
+import { photoService, Photo } from "@/services/imageService"
 
 export default function TestPhotosPage() {
   const [photos, setPhotos] = useState<Photo[]>([])
