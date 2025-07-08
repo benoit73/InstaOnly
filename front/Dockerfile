@@ -1,56 +1,37 @@
 # ====================
-
 # Step 1 - Build stage
-
 # ====================
-
 FROM node:20 AS builder
- 
-# Create app directory
 
 WORKDIR /app
- 
-# Copy package.json and lock files first for better cache
 
+# Copie package.json et lock en premier pour cache
 COPY package*.json* ./
-
 COPY pnpm-lock.yaml ./
- 
-# Install dependencies
 
-RUN npm install
- 
-# Copy all project files
+# Installer deps avec fallback peer-deps
+RUN npm install --legacy-peer-deps
 
+# Copier tout le reste
 COPY . .
- 
+
 # Build Next.js
-
 RUN npm run build
- 
- 
-# =========================
 
+
+# =========================
 # Step 2 - Runtime stage
-
 # =========================
-
 FROM node:20
- 
+
 WORKDIR /app
- 
-# Copy built app from builder
 
+# Copier build depuis le builder
 COPY --from=builder /app ./
- 
-# Cloud Run will set PORT dynamically
 
+# Cloud Run fournit PORT env var
 ENV PORT 8080
-
 EXPOSE 8080
- 
-# Start Next.js server
 
+# Lancer Next.js
 CMD ["npm", "start"]
-
- 
