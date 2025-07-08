@@ -1,5 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACK_URL || 'http://localhost:3001/api';
-
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACK_URL || 'https://back-instaonly-849033623078.europe-west1.run.app/api';
 export interface Account {
   id: number;
   name: string; // Correspond au backend v2
