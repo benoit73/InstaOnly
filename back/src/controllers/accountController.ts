@@ -94,55 +94,47 @@ export class AccountController {
     }
   }
 
-  // Obtenir un compte par ID
-  async getAccountById(req: Request, res: Response) {
+    // Récupérer un compte par ID avec son image principale
+    async getAccountById(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
-
-      const account: any = await Account.findByPk(id, {
+        const { id } = req.params;
+        
+        const account = await Account.findByPk(id, {
         include: [
-          {
+            {
             model: User,
             as: 'user',
             attributes: ['id', 'username', 'email']
-          },
-          {
+            },
+            {
             model: Image,
             as: 'mainImage',
-            attributes: ['id', 'filename', 'filePath', 'prompt']
-          },
-          {
-            model: Image,
-            as: 'images',
-            attributes: ['id', 'filename', 'prompt', 'createdAt']
-          }
+            attributes: ['id', 'filename', 'filePath', 'prompt', 'width', 'height']
+            }
         ]
-      });
+        });
 
-      if (!account) {
-        return res.status(404).json({ error: 'Account not found' });
-      }
-
-      res.json({
-        success: true,
-        data: {
-          id: account.id,
-          name: account.name,
-          description: account.description,
-          userId: account.userId,
-          user: account.user,
-          mainImage: account.mainImage,
-          images: account.images || [],
-          createdAt: account.createdAt,
-          updatedAt: account.updatedAt
+        if (!account) {
+        res.status(404).json({
+            success: false,
+            error: 'Account not found'
+        });
+        return;
         }
-      });
 
+        res.json({
+        success: true,
+        data: account
+        });
     } catch (error) {
-      console.error('Error fetching account:', error);
-      res.status(500).json({ error: 'Failed to fetch account' });
+        console.error('Error fetching account:', error);
+        res.status(500).json({
+        success: false,
+        error: 'Failed to fetch account',
+        message: error instanceof Error ? error.message : 'Unknown error'
+        });
     }
-  }
+    }
 
   // Mettre à jour un compte
   async updateAccount(req: Request, res: Response) {

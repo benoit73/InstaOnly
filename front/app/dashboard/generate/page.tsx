@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { photoService, accountService } from '@/services';
 import type { Account } from '@/services';
-import { ImageDisplay } from '@/components/ui/image-display'; // Ajout de l'import manquant
+import { ImageDisplay } from '@/components/ui/image-display';
 
 interface GenerationParams {
   prompt: string;
@@ -24,7 +24,7 @@ interface BaseImageGenerationRequest extends GenerationParams {
 
 interface ProfileImageGenerationRequest extends GenerationParams {
   accountId: number;
-  baseImageId: string;
+  baseImageId: number; // Changé de string à number
   description?: string;
   isStory: boolean;
 }
@@ -32,12 +32,11 @@ interface ProfileImageGenerationRequest extends GenerationParams {
 export default function GeneratePage() {
   const [mode, setMode] = useState<'base' | 'profile'>('base');
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [baseImages, setBaseImages] = useState<any[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<number | null>(null);
-  const [selectedBaseImage, setSelectedBaseImage] = useState<string | null>(null);
+  const [selectedAccountData, setSelectedAccountData] = useState<(Account & { mainImage?: any }) | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(false);
-  const [isLoadingImages, setIsLoadingImages] = useState(false);
+  const [isLoadingAccountData, setIsLoadingAccountData] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<any>(null);
 
   const [params, setParams] = useState<GenerationParams>({
@@ -71,10 +70,12 @@ export default function GeneratePage() {
   }, []);
 
   useEffect(() => {
-    if (mode === 'profile' && selectedAccount) {
-      loadBaseImages();
+    if (selectedAccount) {
+      loadAccountData();
+    } else {
+      setSelectedAccountData(null);
     }
-  }, [mode, selectedAccount]);
+  }, [selectedAccount]);
 
   const loadAccounts = async () => {
     setIsLoadingAccounts(true);
@@ -89,18 +90,18 @@ export default function GeneratePage() {
     }
   };
 
-  const loadBaseImages = async () => {
-    setIsLoadingImages(true);
+  const loadAccountData = async () => {
+    if (!selectedAccount) return;
+    
+    setIsLoadingAccountData(true);
     try {
-      if (selectedAccount) {
-        const images = await photoService.getPhotosByAccount(selectedAccount, 'published');
-        setBaseImages(images);
-      }
+      const accountData = await accountService.getAccountWithMainImage(selectedAccount);
+      setSelectedAccountData(accountData);
     } catch (error) {
-      console.error('Erreur lors du chargement des images de base:', error);
-      alert('Erreur lors du chargement des images de base');
+      console.error('Erreur lors du chargement des données du compte:', error);
+      setSelectedAccountData(null);
     } finally {
-      setIsLoadingImages(false);
+      setIsLoadingAccountData(false);
     }
   };
 
@@ -117,8 +118,8 @@ export default function GeneratePage() {
       return;
     }
 
-    if (mode === 'profile' && !selectedBaseImage) {
-      alert('Veuillez sélectionner une image de base');
+    if (mode === 'profile' && (!selectedAccountData?.mainImage)) {
+      alert('Ce compte n\'a pas d\'image principale. Veuillez d\'abord définir une image principale pour ce compte.');
       return;
     }
 
@@ -141,7 +142,7 @@ export default function GeneratePage() {
         const generateData: ProfileImageGenerationRequest = {
           ...params,
           accountId: selectedAccount,
-          baseImageId: selectedBaseImage!,
+          baseImageId: selectedAccountData!.mainImage!.id,
           description: formData.description,
           isStory: formData.isStory,
         };
@@ -248,40 +249,51 @@ export default function GeneratePage() {
               )}
             </div>
 
-            {/* Base Image Selection (Profile Mode) */}
+            {/* Main Image Status (Profile Mode) */}
             {mode === 'profile' && selectedAccount && (
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Image de Base
+                  Image Principale du Compte
                 </label>
-                {isLoadingImages ? (
+                {isLoadingAccountData ? (
                   <div className="flex items-center justify-center h-32 bg-gray-100 rounded-lg">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                   </div>
-                ) : baseImages.length > 0 ? (
-                  <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto">
-                    {baseImages.map((image) => (
-                      <div
-                        key={image.id}
-                        onClick={() => setSelectedBaseImage(image.id)}
-                        className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-colors ${
-                          selectedBaseImage === image.id
-                            ? 'border-blue-500'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <img
-                          src={image.image}
-                          alt={image.description}
-                          className="w-full h-20 object-cover"
-                        />
+                ) : selectedAccountData?.mainImage ? (
+                  <div className="border-2 border-green-500 rounded-lg p-2 bg-green-50">
+                    <div className="flex items-center space-x-3">
+                      <img
+                        src={photoService.getImageUrl(selectedAccountData.mainImage)}
+                        alt="Image principale"
+                        className="w-16 h-16 object-cover rounded-lg"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-green-800">
+                          ✓ Image principale définie
+                        </p>
+                        <p className="text-xs text-green-600">
+                          {selectedAccountData.mainImage.filename}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {selectedAccountData.mainImage.prompt?.substring(0, 50)}...
+                        </p>
                       </div>
-                    ))}
+                    </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-600 p-4 bg-gray-50 rounded-lg">
-                    Aucune image publiée trouvée pour ce compte. Publiez d'abord quelques images pour pouvoir les utiliser comme base.
-                  </p>
+                  <div className="border-2 border-red-300 rounded-lg p-4 bg-red-50">
+                    <div className="flex items-center space-x-2">
+                      <div className="text-red-500">⚠️</div>
+                      <div>
+                        <p className="text-sm font-medium text-red-800">
+                          Aucune image principale définie
+                        </p>
+                        <p className="text-xs text-red-600">
+                          Veuillez d'abord définir une image principale pour ce compte dans la section "Comptes".
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             )}
@@ -446,9 +458,17 @@ export default function GeneratePage() {
             {/* Generate Button */}
             <button
               onClick={handleGenerate}
-              disabled={isLoading || !selectedAccount || !params.prompt}
+              disabled={
+                isLoading || 
+                !selectedAccount || 
+                !params.prompt || 
+                (mode === 'profile' && !selectedAccountData?.mainImage)
+              }
               className={`w-full py-3 px-6 rounded-lg font-medium transition-colors ${
-                isLoading || !selectedAccount || !params.prompt
+                isLoading || 
+                !selectedAccount || 
+                !params.prompt || 
+                (mode === 'profile' && !selectedAccountData?.mainImage)
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-blue-600 text-white hover:bg-blue-700'
               }`}
@@ -460,18 +480,22 @@ export default function GeneratePage() {
 
         {/* Preview Panel */}
         <div className="space-y-6">
-          {/* Base Image Preview (Profile Mode) */}
-          {mode === 'profile' && selectedBaseImage && (
+          {/* Main Image Preview (Profile Mode) */}
+          {mode === 'profile' && selectedAccountData?.mainImage && (
             <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-lg font-semibold mb-4">Image de Base</h3>
+              <h3 className="text-lg font-semibold mb-4">Image Principale du Compte</h3>
               <div className="aspect-square rounded-lg overflow-hidden">
-                {baseImages.find(img => img.id === selectedBaseImage) && (
-                  <img
-                    src={baseImages.find(img => img.id === selectedBaseImage)!.image}
-                    alt="Image de base"
-                    className="w-full h-full object-cover"
-                  />
-                )}
+                <ImageDisplay
+                  photo={selectedAccountData.mainImage}
+                  alt="Image principale"
+                  className="w-full h-full object-cover"
+                  width={400}
+                  height={400}
+                />
+              </div>
+              <div className="mt-2 text-sm text-gray-600">
+                <p><strong>Prompt:</strong> {selectedAccountData.mainImage.prompt}</p>
+                <p><strong>Dimensions:</strong> {selectedAccountData.mainImage.width}x{selectedAccountData.mainImage.height}</p>
               </div>
             </div>
           )}
