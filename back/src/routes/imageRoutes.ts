@@ -6,12 +6,6 @@ import fs from 'fs';
 const router = Router();
 const imageController = new ImageController();
 
-// Routes pour les images/photos
-router.get('/images', imageController.getImages.bind(imageController));
-router.get('/images/:id', imageController.getImageById.bind(imageController));
-router.get('/images/:id/info', imageController.getImageInfo.bind(imageController));
-router.delete('/images/:id', imageController.deleteImage.bind(imageController));
-
 // Fonction utilitaire pour servir les fichiers d'images
 const serveImageFile = async (req: any, res: any) => {
   try {
@@ -48,13 +42,19 @@ const serveImageFile = async (req: any, res: any) => {
   }
 };
 
-// Route pour servir les fichiers d'images
-router.get('/images/:id/file', serveImageFile);
+// Routes principales pour les images
+router.get('/images', imageController.getImages.bind(imageController));
+router.get('/images/:id/file', serveImageFile); // IMPORTANT: servir les fichiers
+router.get('/images/:id/info', imageController.getImageInfo.bind(imageController));
+router.get('/images/:id', imageController.getImageById.bind(imageController)); // Cette route doit être après /file
+router.delete('/images/:id', imageController.deleteImage.bind(imageController));
+router.get('/images/account/:accountId', imageController.getImagesByAccount.bind(imageController));
 
 // Routes pour les photos (alias des images pour correspondre au frontend)
 router.get('/photos', imageController.getImages.bind(imageController));
+router.get('/photos/:id/file', serveImageFile); // IMPORTANT: servir les fichiers
+router.get('/photos/:id/info', imageController.getImageInfo.bind(imageController));
 router.get('/photos/:id', imageController.getImageById.bind(imageController));
-router.get('/photos/:id/file', serveImageFile); // Utiliser la même fonction
 router.put('/photos/:id', imageController.updateImage.bind(imageController));
 router.delete('/photos/:id', imageController.deleteImage.bind(imageController));
 router.get('/photos/account/:accountId', imageController.getImagesByAccount.bind(imageController));
@@ -62,10 +62,8 @@ router.post('/photos/:id/duplicate', imageController.duplicateImage.bind(imageCo
 router.post('/photos/:id/variants', imageController.createVariants.bind(imageController));
 
 // Routes de génération
-router.post('/photos/generate/base', imageController.generateMainImage.bind(imageController));
-router.post('/photos/generate/fromimage', imageController.generateImageFromImage.bind(imageController));
-router.post('/photos/generate', imageController.generateMainImage.bind(imageController));
-router.post('/generate-main-image', imageController.generateMainImage.bind(imageController));
+router.post('/photos/generate/txt2txt', imageController.generateTxt2img.bind(imageController));
+router.post('/photos/generate/img2img', imageController.generateImg2img.bind(imageController));
 
 // Routes pour la publication (à implémenter)
 router.post('/photos/:id/publish', imageController.publishPhoto.bind(imageController));

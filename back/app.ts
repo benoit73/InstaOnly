@@ -4,12 +4,96 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
+import sequelize from './src/config/database';
+import { User, Account, Image } from './src/models';
+import imageRoutes from './src/routes/imageRoutes';
+import userRoutes from './src/routes/userRoutes';
+import accountRoutes from './src/routes/accountRoutes';
+
+// Charger les variables d'environnement
+dotenv.config();
+
+const app = express();
+app.set('trust proxy', 1);
+const PORT = process.env.PORT || 8080;
+
+// Configuration CORS
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3001'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
+// Middleware pour les requêtes OPTIONS (preflight)
+app.options('*', cors());
+
+// Middleware
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
+
+// Servir les fichiers statiques pour les uploads
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Route pour servir les images directement par nom de fichier (optionnel)
+app.use('/api/files', express.static(path.join(__dirname, '../uploads')));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use(limiter);
+
+// Augmenter le timeout pour les requêtes longues
+app.use((req, res, next) => {
+  res.setTimeout(360000, () => {
+    res.status(408).json({
+      success: false,
+      error: 'Request timeout',
+      message: 'The request took too long to process'
+    });
+  });
+  next();
+});
+
+// Routes
+app.use('/api', imageRoutes);
+app.use('/api', userRoutes);
+app.use('/api', accountRoutes);
+
+// Route de test
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    stable_diffusion_url: process.env.STABLE_DIFFUSION_API_URL || 'http://localhost:7860'
+  });
+});
+
+// Gestion des erreurs
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Error:', err);
+  res.status(500).import dotenv from 'dotenv';
+import express from 'express';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+import rateLimit from 'express-rate-limit';
+import path from 'path';
 import sequelize from './config/database';
 import { User, Account, Image } from './models';
 import imageRoutes from './routes/imageRoutes';
 import userRoutes from './routes/userRoutes';
 import accountRoutes from './routes/accountRoutes';
-import { seedDatabase } from './utils/seedData';
 
 // Charger les variables d'environnement
 dotenv.config();
@@ -100,10 +184,36 @@ async function startServer() {
     await sequelize.sync({ force: false });
     console.log('Database synchronized successfully.');
     
-    console.log('Starting database seeding...');
-    await seedDatabase();
-    console.log('Database seeding completed.');
+    app.listen(PORT, () => {
+      console.log(`Server is running on http://localhost:${PORT}`);
+      console.log(`Stable Diffusion API URL: ${process.env.STABLE_DIFFUSION_API_URL || 'http://localhost:7860'}`);
+      console.log(`Health check available at: http://localhost:${PORT}/health`);
+      console.log(`Uploads directory: ${path.join(__dirname, '../uploads')}`);
+    });
     
+  } catch (error) {
+    console.error('Unable to start server:', error);
+    process.exit(1);
+  }
+}
+
+startServer();
+json({
+    success: false,
+    error: 'Internal Server Error',
+    message: err.message
+  });
+});
+
+// Initialiser la base de données et démarrer le serveur
+async function startServer() {
+  try {
+    await sequelize.authenticate();
+    console.log('Database connection established successfully.');
+    
+    await sequelize.sync({ force: false });
+    console.log('Database synchronized successfully.');
+        
     app.listen(PORT, () => {
       console.log(`Server is running on http://localhost:${PORT}`);
       console.log(`Stable Diffusion API URL: ${process.env.STABLE_DIFFUSION_API_URL || 'http://localhost:7860'}`);

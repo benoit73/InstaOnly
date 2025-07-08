@@ -13,6 +13,7 @@ export class StableDiffusionService {
         width?: number;
         height?: number;
         steps?: number;
+        seed?: number; // AJOUTER LE PARAMÈTRE SEED
     }): Promise<StableDiffusionResponse> {
         const response = await fetch(`${this.baseUrl}/sdapi/v1/txt2img`, {
             method: 'POST',
@@ -26,7 +27,8 @@ export class StableDiffusionService {
                 height: params.height || 512,
                 steps: params.steps || 20,
                 cfg_scale: 7,
-                sampler_index: "Euler a"
+                sampler_index: "Euler a",
+                seed: params.seed || -1 // -1 = seed aléatoire, sinon utilise la seed fournie
             }),
             // Timeout de 5 minutes pour la génération
             signal: AbortSignal.timeout(300000)
@@ -37,7 +39,7 @@ export class StableDiffusionService {
         }
 
         const result = await response.json() as StableDiffusionResponse;
-        
+        console.log('Params de txt2img : ' + JSON.stringify(params))
         // Vérifier si des images ont été générées
         if (!result.images || result.images.length === 0) {
             throw new Error('No images were generated');
@@ -56,6 +58,7 @@ export class StableDiffusionService {
         cfg_scale?: number;
         sampler_index?: string;
         init_images: string[];
+        seed?: number; // AJOUTER LE PARAMÈTRE SEED
     }): Promise<StableDiffusionResponse> {
         const response = await fetch(`${this.baseUrl}/sdapi/v1/img2img`, {
             method: 'POST',
@@ -71,7 +74,8 @@ export class StableDiffusionService {
                 denoising_strength: params.denoising_strength || 0.75,
                 init_images: params.init_images,
                 cfg_scale: params.cfg_scale || 7,
-                sampler_index: params.sampler_index || "Euler a"
+                sampler_index: params.sampler_index || "Euler a",
+                seed: params.seed || -1 // -1 = seed aléatoire, sinon utilise la seed fournie
             }),
             // Timeout de 5 minutes pour la génération
             signal: AbortSignal.timeout(300000)

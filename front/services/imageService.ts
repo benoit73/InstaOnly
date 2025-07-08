@@ -17,6 +17,7 @@ export interface Photo {
   scheduledAt?: string;
   publishedAt?: string;
   generatedBy?: 'ai' | 'upload' | 'template';
+  isDeleted?: boolean; // NOUVEAU CHAMP AJOUTÉ
   account?: {
     id: number;
     name: string;
@@ -47,7 +48,7 @@ export interface UpdatePhotoRequest {
   scheduledAt?: string;
 }
 
-export interface GeneratePhotoRequest {
+export interface GenerateRequest {
   prompt: string;
   negative_prompt?: string;
   width?: number;
@@ -139,9 +140,9 @@ class ImageService {
   }
 
   // Générer une image de base avec IA (txt2img)
-  async generateBaseImage(generateData: GeneratePhotoRequest): Promise<Photo> {
+  async generateBaseImage(generateData: GenerateRequest): Promise<Photo> {
     try {
-      const response = await fetch(`${API_BASE_URL}/photos/generate/base`, {
+      const response = await fetch(`${API_BASE_URL}/photos/generate/txt2txt`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -161,10 +162,10 @@ class ImageService {
     }
   }
 
-  // Générer une image à partir d'une autre (img2img)
-  async generateImageFromImage(generateData: GeneratePhotoRequest & { baseImageId: number }): Promise<Photo> {
+  // Générer une image à partir de l'image de base
+  async generateImageFromBase(generateData: GenerateRequest & { baseImageId: number }): Promise<Photo> {
     try {
-      const response = await fetch(`${API_BASE_URL}/photos/generate/fromimage`, {
+      const response = await fetch(`${API_BASE_URL}/photos/generate/img2img`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -185,7 +186,7 @@ class ImageService {
   }
 
   // Générer une photo avec IA (alias pour generateBaseImage)
-  async generatePhoto(generateData: GeneratePhotoRequest): Promise<Photo> {
+  async generatePhoto(generateData: GenerateRequest): Promise<Photo> {
     return this.generateBaseImage(generateData);
   }
 
@@ -311,6 +312,34 @@ class ImageService {
   getImageDirectUrl(photo: Photo): string {
     // Servir via les fichiers statiques (garde /api et utilise /uploads)
     return `${API_BASE_URL}/files/${photo.filePath.replace('uploads/', '')}`;
+  }
+
+  // Marquer une photo comme supprimée (soft delete)
+  async markAsDeleted(photoId: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/photos/${photoId}/mark-deleted`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to mark photo as deleted');
+    }
+  }
+
+  // Restaurer une photo supprimée
+  async restorePhoto(photoId: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/photos/${photoId}/restore`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to restore photo');
+    }
   }
 
   // Méthodes pour la publication (à implémenter côté backend)

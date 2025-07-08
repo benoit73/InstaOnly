@@ -11,9 +11,36 @@ export class ImageController {
     this.stableDiffusionService = new StableDiffusionService();
   }
 
+  // Fonction helper pour obtenir la seed de l'image de base du compte
+  private async getAccountBaseSeed(accountId: number): Promise<{ account: any, baseSeed: number | undefined }> {
+    const account = await Account.findOne({
+      where: { id: accountId },
+      include: [
+        {
+          model: Image,
+          as: 'mainImage',
+          attributes: ['id', 'filename', 'filePath', 'seed', 'prompt', 'width', 'height']
+        }
+      ]
+    });
+
+    if (!account) {
+      throw new Error('Account not found');
+    }
+
+    if (!account.mainImage) {
+      throw new Error('No main image found for this account. Please generate a main image first.');
+    }
+
+    return {
+      account,
+      baseSeed: account.mainImage.seed
+    };
+  }
+
   // Méthode pour générer une image principale (txt2img)
-  async generateMainImage(req: Request, res: Response) {
-    console.log('generateMainImage starting..');
+  async generateTxt2img(req: Request, res: Response) {
+    console.log('generateTxt2img starting..');
     try {
       const {
         prompt,
@@ -21,7 +48,8 @@ export class ImageController {
         width = 512,
         height = 512,
         steps = 20,
-        accountId
+        accountId,
+        type = 'base' // Par défaut 'base', peut être 'normal'
       } = req.body;
 
       if (!prompt) {
@@ -32,27 +60,56 @@ export class ImageController {
         return res.status(400).json({ error: 'accountId is required' });
       }
 
-      // Vérifier que le compte existe
-      const account = await Account.findByPk(accountId);
-      if (!account) {
-        return res.status(404).json({ error: 'Account not found' });
+      let account;
+      let baseSeed: number | undefined;
+      let baseImageId: number | undefined;
+
+      if (type === 'normal') {
+        // Pour le type 'normal', récupérer la seed de l'image de base
+        try {
+          const result = await this.getAccountBaseSeed(accountId);
+          account = result.account;
+          baseSeed = result.baseSeed;
+          baseImageId = account.mainImage.id;
+          console.log(`Using base image seed: ${baseSeed} for normal generation`);
+        } catch (error: any) {
+          return res.status(400).json({ error: error.message });
+        }
+      } else {
+        // Pour le type 'base', vérifier que le compte existe seulement
+        account = await Account.findByPk(accountId);
+        if (!account) {
+          return res.status(404).json({ error: 'Account not found' });
+        }
       }
 
-      console.log(`Starting main image generation with prompt: "${prompt}"`);
+      console.log(`Starting ${type} image generation with prompt: "${prompt}"`);
 
-      // Utiliser txt2img pour générer l'image principale
+      // Utiliser txt2img pour générer l'image avec ou sans seed
       const result = await this.stableDiffusionService.txt2img({
         prompt,
         negative_prompt,
         width,
         height,
-        steps
+        steps,
+        seed: baseSeed // Undefined pour 'base', seed de l'image de base pour 'normal'
       });
 
-      console.log('Main image generation completed');
+      console.log(`${type} image generation completed`);
+
+      // Extraire la seed de la réponse
+      let seed: number | undefined;
+      try {
+        const info = JSON.parse(result.info);
+        seed = info.seed;
+        console.log('Extracted seed:', seed);
+      } catch (error) {
+        console.warn('Could not extract seed from response:', error);
+        seed = baseSeed; // Fallback sur la seed de base si disponible
+      }
 
       // Sauvegarder l'image générée
-      const filename = `main_image_${Date.now()}.png`;
+      const filename = `${type}_image_${Date.now()}.png`;
       const filePath = await FileService.saveImageFromBase64(
         result.images[0], // Première image générée
         1, // userId par défaut
@@ -60,61 +117,68 @@ export class ImageController {
         filename
       );
 
-      // Enregistrer en base de données
+      // Enregistrer en base de données avec la seed
       const image = await Image.create({
         filename,
-        originalName: `main_${prompt.substring(0, 20).replace(/[^a-zA-Z0-9]/g, '_')}.png`,
+        originalName: `${type}_${prompt.substring(0, 20).replace(/[^a-zA-Z0-9]/g, '_')}.png`,
         filePath,
         prompt,
         negativePrompt: negative_prompt,
         width,
         height,
         steps,
+        seed, // Seed utilisée pour la génération
         userId: 1, // userId par défaut
         accountId: accountId,
       });
 
-      // NE PLUS définir automatiquement cette image comme image principale
-      // await account.update({ mainImageId: image.id }); // SUPPRIMÉ
+      // Préparer la réponse
+      const responseData: any = {
+        id: image.id,
+        filename: image.filename,
+        filePath: image.filePath,
+        prompt: image.prompt,
+        negativePrompt: image.negativePrompt,
+        width: image.width,
+        height: image.height,
+        steps: image.steps,
+        seed: image.seed,
+        userId: image.userId,
+        accountId: image.accountId,
+        createdAt: image.createdAt,
+        imageUrl: `/api/images/${image.id}/file`,
+        // Informations supplémentaires de Stable Diffusion
+        stableDiffusionInfo: {
+          parameters: result.parameters,
+          info: result.info
+        }
+      };
+
+      // Ajouter des informations supplémentaires pour le type 'normal'
+      if (type === 'normal' && baseImageId && baseSeed) {
+        responseData.baseImageId = baseImageId;
+        responseData.baseImageSeed = baseSeed;
+      }
 
       res.status(201).json({
         success: true,
-        message: 'Image generated successfully', // Message modifié
-        data: {
-          id: image.id,
-          filename: image.filename,
-          filePath: image.filePath,
-          prompt: image.prompt,
-          negativePrompt: image.negativePrompt,
-          width: image.width,
-          height: image.height,
-          steps: image.steps,
-          userId: image.userId,
-          accountId: image.accountId,
-          createdAt: image.createdAt,
-          imageUrl: `/api/images/${image.id}/file`,
-          // isMainImage: true, // SUPPRIMÉ car ce n'est plus automatiquement l'image principale
-          // Informations supplémentaires de Stable Diffusion
-          stableDiffusionInfo: {
-            parameters: result.parameters,
-            info: result.info
-          }
-        }
+        message: `${type === 'normal' ? 'Normal' : 'Main'} image generated successfully`,
+        data: responseData
       });
 
     } catch (error: any) {
-      console.error('Error generating main image:', error);
+      console.error('Error generating image:', error);
       
       if (error.name === 'AbortError') {
         res.status(408).json({ 
           success: false,
           error: 'Request timeout',
-          message: 'Main image generation took too long and was cancelled'
+          message: 'Image generation took too long and was cancelled'
         });
       } else {
         res.status(500).json({ 
           success: false,
-          error: 'Failed to generate main image',
+          error: 'Failed to generate image',
           message: error.message || 'Unknown error occurred'
         });
       }
@@ -122,7 +186,7 @@ export class ImageController {
   }
 
   // Méthode pour générer une image basée sur l'image principale du compte (img2img)
-  async generateImageFromImage(req: Request, res: Response) {
+  async generateImg2img(req: Request, res: Response) {
     try {
       const {
         prompt,
@@ -142,34 +206,25 @@ export class ImageController {
         return res.status(400).json({ error: 'accountId is required' });
       }
 
-      // Vérifier que le compte existe et a une image principale
-      const account = await Account.findOne({
-        where: { id: accountId },
-        include: [
-          {
-            model: Image,
-            as: 'mainImage',
-            attributes: ['id', 'filename', 'filePath']
-          }
-        ]
-      });
-
-      if (!account) {
-        return res.status(404).json({ error: 'Account not found' });
-      }
-
-      if (!account.mainImage) {
-        return res.status(400).json({ error: 'No main image found for this account. Please generate a main image first.' });
+      // Utiliser la fonction helper pour récupérer l'image de base et sa seed
+      let account, baseSeed;
+      try {
+        const result = await this.getAccountBaseSeed(accountId);
+        account = result.account;
+        baseSeed = result.baseSeed;
+      } catch (error: any) {
+        return res.status(400).json({ error: error.message });
       }
 
       console.log(`Starting image generation with img2img, prompt: "${prompt}"`);
+      console.log(`Using base image seed: ${baseSeed}`);
 
       // Convertir l'image principale en base64
       const fs = require('fs');
       const imageBuffer = fs.readFileSync(account.mainImage.filePath);
       const base64Image = imageBuffer.toString('base64');
 
-      // Utiliser img2img pour générer l'image
+      // Utiliser img2img pour générer l'image avec la seed de l'image de base
       const result = await this.stableDiffusionService.img2img({
         prompt,
         negative_prompt,
@@ -177,10 +232,22 @@ export class ImageController {
         height,
         steps,
         denoising_strength,
-        init_images: [base64Image]
+        init_images: [base64Image],
+        seed: baseSeed // UTILISER LA SEED DE L'IMAGE DE BASE
       });
 
       console.log('Image generation completed');
+
+      // Extraire la seed de la réponse
+      let seed: number | undefined;
+      try {
+        const info = JSON.parse(result.info);
+        seed = info.seed;
+        console.log('Generated with seed:', seed);
+      } catch (error) {
+        console.warn('Could not extract seed from response:', error);
+        seed = baseSeed; // Fallback sur la seed d'origine
+      }
 
       // Sauvegarder l'image générée
       const filename = `image_${Date.now()}.png`;
@@ -191,7 +258,7 @@ export class ImageController {
         filename
       );
 
-      // Enregistrer en base de données
+      // Enregistrer en base de données avec la seed
       const image = await Image.create({
         filename,
         originalName: `generated_${prompt.substring(0, 20).replace(/[^a-zA-Z0-9]/g, '_')}.png`,
@@ -201,6 +268,7 @@ export class ImageController {
         width,
         height,
         steps,
+        seed, // Seed utilisée pour la génération
         userId: 1, // userId par défaut
         accountId: accountId,
       });
@@ -217,12 +285,14 @@ export class ImageController {
           width: image.width,
           height: image.height,
           steps: image.steps,
+          seed: image.seed,
           denoising_strength: denoising_strength,
           userId: image.userId,
           accountId: image.accountId,
           createdAt: image.createdAt,
           imageUrl: `/api/images/${image.id}/file`,
-          baseImageId: account.mainImage.id, // ID de l'image de base utilisée
+          baseImageId: account.mainImage.id,
+          baseImageSeed: baseSeed, // AJOUTER LA SEED DE BASE
           // Informations supplémentaires de Stable Diffusion
           stableDiffusionInfo: {
             parameters: result.parameters,
@@ -244,6 +314,165 @@ export class ImageController {
         res.status(500).json({ 
           success: false,
           error: 'Failed to generate image from image',
+          message: error.message || 'Unknown error occurred'
+        });
+      }
+    }
+  }
+
+  // Ajouter une nouvelle méthode pour la génération normale
+  async generateNormal(req: Request, res: Response) {
+    console.log('generateNormal starting..');
+    try {
+      const {
+        prompt,
+        negative_prompt,
+        width = 512,
+        height = 512,
+        steps = 20,
+        denoising_strength = 0.75,
+        accountId,
+        type
+      } = req.body;
+
+      if (!prompt) {
+        return res.status(400).json({ error: 'Prompt is required' });
+      }
+
+      if (!accountId) {
+        return res.status(400).json({ error: 'accountId is required' });
+      }
+
+      // Vérifier que le compte existe et récupérer l'image principale avec la seed
+      const account = await Account.findOne({
+        where: { id: accountId },
+        include: [
+          {
+            model: Image,
+            as: 'mainImage',
+            attributes: ['id', 'filename', 'filePath', 'seed', 'prompt', 'width', 'height']
+          }
+        ]
+      });
+
+      if (!account) {
+        return res.status(404).json({ error: 'Account not found' });
+      }
+
+      if (!account.mainImage) {
+        return res.status(400).json({ error: 'No main image found for this account. Please generate a main image first.' });
+      }
+
+      console.log(`Starting normal image generation with prompt: "${prompt}"`);
+      console.log(`Using base image seed: ${account.mainImage.seed}`);
+
+      let result;
+
+      if (type === 'normal') {
+        // Mode img2img avec la seed de l'image de base
+        const fs = require('fs');
+        const imageBuffer = fs.readFileSync(account.mainImage.filePath);
+        const base64Image = imageBuffer.toString('base64');
+
+        result = await this.stableDiffusionService.img2img({
+          prompt,
+          negative_prompt,
+          width,
+          height,
+          steps,
+          denoising_strength,
+          init_images: [base64Image],
+          seed: account.mainImage.seed // UTILISER LA SEED DE L'IMAGE DE BASE
+        });
+      } else {
+        // Mode txt2img avec la seed de l'image de base
+        result = await this.stableDiffusionService.txt2img({
+          prompt,
+          negative_prompt,
+          width,
+          height,
+          steps,
+          seed: account.mainImage.seed // UTILISER LA SEED DE L'IMAGE DE BASE
+        });
+      }
+
+      console.log('Normal image generation completed');
+
+      // Extraire la seed de la réponse (devrait être la même que celle passée)
+      let generatedSeed: number | undefined;
+      try {
+        const info = JSON.parse(result.info);
+        generatedSeed = info.seed;
+        console.log('Generated with seed:', generatedSeed);
+      } catch (error) {
+        console.warn('Could not extract seed from response:', error);
+        generatedSeed = account.mainImage.seed; // Fallback sur la seed d'origine
+      }
+
+      // Sauvegarder l'image générée
+      const filename = `normal_image_${Date.now()}.png`;
+      const filePath = await FileService.saveImageFromBase64(
+        result.images[0], // Première image générée
+        1, // userId par défaut
+        accountId,
+        filename
+      );
+
+      // Enregistrer en base de données
+      const image = await Image.create({
+        filename,
+        originalName: `normal_${prompt.substring(0, 20).replace(/[^a-zA-Z0-9]/g, '_')}.png`,
+        filePath,
+        prompt,
+        negativePrompt: negative_prompt,
+        width,
+        height,
+        steps,
+        seed: generatedSeed, // Seed utilisée pour la génération
+        userId: 1, // userId par défaut
+        accountId: accountId,
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Normal image generated successfully',
+        data: {
+          id: image.id,
+          filename: image.filename,
+          filePath: image.filePath,
+          prompt: image.prompt,
+          negativePrompt: image.negativePrompt,
+          width: image.width,
+          height: image.height,
+          steps: image.steps,
+          seed: image.seed,
+          userId: image.userId,
+          accountId: image.accountId,
+          createdAt: image.createdAt,
+          imageUrl: `/api/images/${image.id}/file`,
+          baseImageSeed: account.mainImage.seed, // Seed de l'image de base utilisée
+          baseImageId: account.mainImage.id,
+          // Informations supplémentaires de Stable Diffusion
+          stableDiffusionInfo: {
+            parameters: result.parameters,
+            info: result.info
+          }
+        }
+      });
+
+    } catch (error: any) {
+      console.error('Error generating normal image:', error);
+      
+      if (error.name === 'AbortError') {
+        res.status(408).json({ 
+          success: false,
+          error: 'Request timeout',
+          message: 'Normal image generation took too long and was cancelled'
+        });
+      } else {
+        res.status(500).json({ 
+          success: false,
+          error: 'Failed to generate normal image',
           message: error.message || 'Unknown error occurred'
         });
       }
@@ -283,14 +512,19 @@ export class ImageController {
           width: img.width,
           height: img.height,
           steps: img.steps,
+          seed: img.seed,
           accountId: img.accountId,
           account: img.account,
           createdAt: img.createdAt,
           updatedAt: img.updatedAt,
-          // URLs pour accéder aux images
+          // URL pour récupérer le fichier image via sendFile
           imageUrl: `/api/images/${img.id}/file`,
+          // URL directe pour les uploads (si accessible statiquement)
           directUrl: `/uploads/${img.filePath.replace('uploads/', '')}`,
-        }))
+          // Vérifier si le fichier existe physiquement
+          fileExists: require('fs').existsSync(img.filePath)
+        })),
+        count: images.length
       });
 
     } catch (error) {
@@ -422,9 +656,35 @@ export class ImageController {
         order: [['createdAt', 'DESC']]
       });
 
+      // Mapper les images avec les URLs correctes pour récupérer les fichiers
+      const mappedImages = images.map((img: any) => ({
+        id: img.id,
+        filename: img.filename,
+        originalName: img.originalName,
+        filePath: img.filePath,
+        prompt: img.prompt,
+        negativePrompt: img.negativePrompt,
+        width: img.width,
+        height: img.height,
+        steps: img.steps,
+        seed: img.seed,
+        userId: img.userId,
+        accountId: img.accountId,
+        account: img.account,
+        createdAt: img.createdAt,
+        updatedAt: img.updatedAt,
+        // URL pour récupérer le fichier image via sendFile
+        imageUrl: `/api/images/${img.id}/file`,
+        // URL directe pour les uploads (si accessible statiquement)
+        directUrl: `/uploads/${img.filePath.replace('uploads/', '')}`,
+        // Vérifier si le fichier existe physiquement
+        fileExists: require('fs').existsSync(img.filePath)
+      }));
+
       res.json({
         success: true,
-        data: images
+        data: mappedImages,
+        count: mappedImages.length
       });
     } catch (error) {
       console.error('Error fetching images by account:', error);
@@ -537,6 +797,7 @@ export class ImageController {
         width: originalImage.width,
         height: originalImage.height,
         steps: originalImage.steps,
+        seed: originalImage.seed, // COPIER LA SEED AUSSI
         userId: originalImage.userId,
         accountId: originalImage.accountId
       });
@@ -553,10 +814,11 @@ export class ImageController {
           width: duplicatedImage.width,
           height: duplicatedImage.height,
           steps: duplicatedImage.steps,
+          seed: duplicatedImage.seed, // INCLURE LA SEED DANS LA RÉPONSE
           userId: duplicatedImage.userId,
           accountId: duplicatedImage.accountId,
           createdAt: duplicatedImage.createdAt,
-          imageUrl: `/api/images/${duplicatedImage.id}`
+          imageUrl: `/api/images/${duplicatedImage.id}/file`
         }
       });
     } catch (error) {

@@ -11,13 +11,15 @@ interface ImageAttributes {
   width?: number;
   height?: number;
   steps?: number;
+  seed?: number;
   userId: number;
   accountId?: number;
+  isDeleted?: boolean; // NOUVEAU CHAMP
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-interface ImageCreationAttributes extends Optional<ImageAttributes, 'id' | 'createdAt' | 'updatedAt' | 'negativePrompt' | 'width' | 'height' | 'steps' | 'accountId'> {}
+interface ImageCreationAttributes extends Optional<ImageAttributes, 'id' | 'createdAt' | 'updatedAt' | 'negativePrompt' | 'width' | 'height' | 'steps' | 'seed' | 'accountId' | 'isDeleted'> {}
 
 class Image extends Model<ImageAttributes, ImageCreationAttributes> implements ImageAttributes {
   public id!: number;
@@ -29,14 +31,16 @@ class Image extends Model<ImageAttributes, ImageCreationAttributes> implements I
   public width?: number;
   public height?: number;
   public steps?: number;
+  public seed?: number;
   public userId!: number;
   public accountId?: number;
+  public isDeleted?: boolean; // NOUVEAU CHAMP
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
   // Associations
-  public account?: any; // Ajout de l'association
-  public user?: any;    // Ajout de l'association
+  public account?: any;
+  public user?: any;
 
   // Définition des associations pour TypeScript
   public static associations: {
@@ -84,6 +88,11 @@ Image.init(
       type: DataTypes.INTEGER,
       allowNull: true,
     },
+    seed: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: 'Seed used for image generation'
+    },
     userId: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -99,6 +108,12 @@ Image.init(
         model: 'Accounts',
         key: 'id',
       },
+    },
+    isDeleted: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      comment: 'Soft delete flag for images'
     },
   },
   {

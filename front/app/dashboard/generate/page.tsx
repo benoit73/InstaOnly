@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { photoService, accountService, imageService } from '@/services';
+import { accountService, imageService } from '@/services';
 import type { Account } from '@/services';
 import { ImageDisplay } from '@/components/ui/image-display';
 import { ImagePreview } from '@/components/ui/image-preview';
 
-interface GenerationParams {
+interface GenerationRequest {
   prompt: string;
   negative_prompt: string;
   width: number;
@@ -15,19 +15,11 @@ interface GenerationParams {
   denoising_strength: number;
   cfg_scale: number;
   sampler_index: number;
-}
-
-interface BaseImageGenerationRequest extends GenerationParams {
   accountId: number;
+  baseImageId?: number;
   description?: string;
   isStory: boolean;
-}
-
-interface ProfileImageGenerationRequest extends GenerationParams {
-  accountId: number;
-  baseImageId: number;
-  description?: string;
-  isStory: boolean;
+  type: string;
 }
 
 export default function GeneratePage() {
@@ -36,10 +28,14 @@ export default function GeneratePage() {
   const [selectedAccount, setSelectedAccount] = useState<number | null>(null);
   const [selectedAccountData, setSelectedAccountData] = useState<Account | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingAccounts, setIsLoadingAccounts] = useState(false);
+  const [isLoadingAccounts, setLoadingAccounts] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<any>(null);
 
-  const [params, setParams] = useState<GenerationParams>({
+  // Nouveaux états pour le prompt de base
+  const [basePrompt, setBasePrompt] = useState('');
+  const [isBasePromptEditable, setIsBasePromptEditable] = useState(false);
+
+  const [params, setParams] = useState({
     prompt: '',
     negative_prompt: '',
     width: 512,
@@ -68,14 +64,14 @@ export default function GeneratePage() {
   // Charger les comptes
   useEffect(() => {
     const loadAccounts = async () => {
-      setIsLoadingAccounts(true);
+      setLoadingAccounts(true);
       try {
         const accountsData = await accountService.getAccounts();
         setAccounts(accountsData);
       } catch (error) {
         console.error('Erreur lors du chargement des comptes:', error);
       } finally {
-        setIsLoadingAccounts(false);
+        setLoadingAccounts(false);
       }
     };
 
@@ -91,20 +87,32 @@ export default function GeneratePage() {
           const accountData = await accountService.getAccount(selectedAccount);
           setSelectedAccountData(accountData);
           
-          // Pas besoin de loadBaseImage, les données sont déjà dans accountData.mainImage
+          // Mettre à jour le prompt de base avec le prompt de l'image principale
+          if (accountData.mainImage?.prompt) {
+            setBasePrompt(accountData.mainImage.prompt);
+          } else {
+            setBasePrompt('');
+          }
+          
+          // Réinitialiser l'état d'édition
+          setIsBasePromptEditable(false);
+          
         } catch (error) {
           console.error('Erreur lors du chargement du compte:', error);
           setSelectedAccountData(null);
+          setBasePrompt('');
         }
       } else {
         setSelectedAccountData(null);
+        setBasePrompt('');
+        setIsBasePromptEditable(false);
       }
     };
 
     loadAccountData();
   }, [selectedAccount]);
 
-  const handleParamChange = (key: keyof GenerationParams, value: string | number) => {
+  const handleParamChange = (key: string, value: string | number) => {
     setParams(prev => ({
       ...prev,
       [key]: value,
@@ -129,24 +137,38 @@ export default function GeneratePage() {
       let result;
 
       if (mode === 'base') {
-        const generateData: BaseImageGenerationRequest = {
+        const generateData: GenerationRequest = {
           ...params,
           accountId: selectedAccount,
           description: formData.description,
           isStory: formData.isStory,
+          type: 'base',
         };
 
-        result = await photoService.generateBaseImage(generateData);
+        result = await imageService.generateBaseImage(generateData);
       } else {
-        const generateData: ProfileImageGenerationRequest = {
+        // Assurer que baseImageId existe avant de l'utiliser
+        const baseImageId = selectedAccountData!.mainImage!.id;
+        
+        // Concaténer le prompt de base et le prompt avec une virgule
+        let finalPrompt = params.prompt;
+        if (basePrompt.trim() && params.prompt.trim()) {
+          finalPrompt = `${basePrompt.trim()}, ${params.prompt.trim()}`;
+        } else if (basePrompt.trim()) {
+          finalPrompt = basePrompt.trim();
+        }
+        
+        const generateData = {
           ...params,
+          prompt: finalPrompt, // Utiliser le prompt concaténé
           accountId: selectedAccount,
-          baseImageId: selectedAccountData!.mainImage!.id,
+          baseImageId,
           description: formData.description,
           isStory: formData.isStory,
+          type: 'normal',
         };
 
-        result = await photoService.generateImageFromImage(generateData);
+        result = await imageService.generateImageFromBase(generateData);
       }
 
       setGeneratedImage(result);
@@ -163,10 +185,16 @@ export default function GeneratePage() {
     if (!generatedImage || !selectedAccount) return;
 
     try {
-      // Définir l'image générée comme image principale du compte
-      await accountService.setMainImage(selectedAccount, generatedImage.id);
+      if (mode === 'base') {
+        // Mode "Image de Base" : définir comme image principale du compte
+        await accountService.setMainImage(selectedAccount, generatedImage.id);
+        alert('Image sauvegardée et définie comme image principale avec succès !');
+      } else {
+        // Mode "Photo à partir d'un Profil" : marquer comme supprimée (isDeleted = true)
+        await imageService.markAsDeleted(generatedImage.id);
+        alert('Photo sauvegardée avec succès !');
+      }
       
-      alert('Image sauvegardée et définie comme image principale avec succès !');
       setGeneratedImage(null);
       setParams({
         prompt: '',
@@ -178,20 +206,24 @@ export default function GeneratePage() {
         cfg_scale: 7.5,
         sampler_index: 0,
       });
-      setFormData({ description: '' });
+      setFormData(prev => ({ ...prev, description: '' }));
       
-      // Recharger les données du compte pour mettre à jour l'image principale affichée
-      if (selectedAccount) {
+      // Recharger les données du compte seulement en mode 'base'
+      if (mode === 'base' && selectedAccount) {
         try {
           const accountData = await accountService.getAccount(selectedAccount);
           setSelectedAccountData(accountData);
+          
+          if (accountData.mainImage?.prompt) {
+            setBasePrompt(accountData.mainImage.prompt);
+          }
         } catch (error) {
           console.error('Erreur lors du rechargement du compte:', error);
         }
       }
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
-      alert('Erreur lors de la sauvegarde de l\'image principale');
+      alert('Erreur lors de la sauvegarde de l\'image');
     }
   };
 
@@ -293,18 +325,62 @@ export default function GeneratePage() {
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="text-lg font-semibold mb-4">Paramètres Avancés</h3>
 
+            {/* Base Prompt - Affiché seulement en mode profile */}
+            {mode === 'profile' && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Prompt de Base
+                  </label>
+                  <button
+                    onClick={() => setIsBasePromptEditable(!isBasePromptEditable)}
+                    className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                  >
+                    {isBasePromptEditable ? 'Protéger' : 'Modifier le prompt de base'}
+                  </button>
+                </div>
+                <textarea
+                  value={basePrompt}
+                  onChange={(e) => setBasePrompt(e.target.value)}
+                  disabled={!isBasePromptEditable}
+                  placeholder="Prompt de l'image de base..."
+                  rows={2}
+                  className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    !isBasePromptEditable ? 'bg-gray-100 cursor-not-allowed' : ''
+                  }`}
+                />
+                {basePrompt && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Ce prompt sera automatiquement ajouté avant votre prompt personnalisé
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Prompt */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Prompt *
+                {mode === 'profile' ? 'Prompt Personnalisé *' : 'Prompt *'}
               </label>
               <textarea
                 value={params.prompt}
                 onChange={(e) => handleParamChange('prompt', e.target.value)}
-                placeholder="Décrivez l'image que vous souhaitez générer..."
+                placeholder={
+                  mode === 'profile' 
+                    ? "Ajoutez des éléments spécifiques à votre génération..."
+                    : "Décrivez l'image que vous souhaitez générer..."
+                }
                 rows={3}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
+              {mode === 'profile' && basePrompt && params.prompt && (
+                <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
+                  <p className="text-xs text-blue-800 font-medium mb-1">Prompt final qui sera utilisé :</p>
+                  <p className="text-xs text-blue-700">
+                    "{basePrompt.trim()}, {params.prompt.trim()}"
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Negative Prompt */}
@@ -424,13 +500,15 @@ export default function GeneratePage() {
               disabled={
                 isLoading || 
                 !selectedAccount || 
-                !params.prompt || 
+                (!params.prompt && mode === 'base') ||
+                (mode === 'profile' && !basePrompt && !params.prompt) ||
                 (mode === 'profile' && !selectedAccountData?.mainImage?.id)
               }
               className={`w-full py-3 px-6 rounded-lg font-medium transition-colors ${
                 isLoading || 
                 !selectedAccount || 
-                !params.prompt || 
+                (!params.prompt && mode === 'base') ||
+                (mode === 'profile' && !basePrompt && !params.prompt) ||
                 (mode === 'profile' && !selectedAccountData?.mainImage?.id)
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-blue-600 text-white hover:bg-blue-700'
@@ -467,11 +545,11 @@ export default function GeneratePage() {
                   onClick={handleSavePhoto}
                   className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
                 >
-                  Sauvegarder
+                  {mode === 'base' ? 'Sauvegarder comme Image Principale' : 'Sauvegarder'}
                 </button>
                 <button
                   onClick={handleGenerate}
-                  disabled={!selectedAccount || !params.prompt}
+                  disabled={!selectedAccount || (!params.prompt && mode === 'base') || (mode === 'profile' && !basePrompt && !params.prompt)}
                   className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
                   Régénérer

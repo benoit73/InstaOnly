@@ -9,7 +9,6 @@ import { User, Account, Image } from './models';
 import imageRoutes from './routes/imageRoutes';
 import userRoutes from './routes/userRoutes';
 import accountRoutes from './routes/accountRoutes';
-import { seedDatabase } from './utils/seedData';
 
 // Charger les variables d'environnement
 dotenv.config();
@@ -99,10 +98,6 @@ async function startServer() {
     
     await sequelize.sync({ force: false });
     console.log('Database synchronized successfully.');
-    
-    console.log('Starting database seeding...');
-    await seedDatabase();
-    console.log('Database seeding completed.');
     
     app.listen(PORT, () => {
       console.log(`Server is running on http://localhost:${PORT}`);
