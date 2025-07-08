@@ -17,7 +17,7 @@ interface ImageAttributes {
   updatedAt?: Date;
 }
 
-interface ImageCreationAttributes extends Optional<ImageAttributes, 'id'> {}
+interface ImageCreationAttributes extends Optional<ImageAttributes, 'id' | 'createdAt' | 'updatedAt' | 'negativePrompt' | 'width' | 'height' | 'steps' | 'accountId'> {}
 
 class Image extends Model<ImageAttributes, ImageCreationAttributes> implements ImageAttributes {
   public id!: number;
@@ -35,13 +35,13 @@ class Image extends Model<ImageAttributes, ImageCreationAttributes> implements I
   public readonly updatedAt!: Date;
 
   // Associations
-  public account?: any;
-  public accountsUsingAsMain?: any[];
+  public account?: any; // Ajout de l'association
+  public user?: any;    // Ajout de l'association
 
-  // Déclarations des associations
+  // Définition des associations pour TypeScript
   public static associations: {
     account: Association<Image, any>;
-    accountsUsingAsMain: Association<Image, any>;
+    user: Association<Image, any>;
   };
 }
 
@@ -87,13 +87,16 @@ Image.init(
     userId: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      defaultValue: 1,
+      references: {
+        model: 'Users',
+        key: 'id',
+      },
     },
     accountId: {
       type: DataTypes.INTEGER,
       allowNull: true,
       references: {
-        model: 'accounts',
+        model: 'Accounts',
         key: 'id',
       },
     },
@@ -101,7 +104,8 @@ Image.init(
   {
     sequelize,
     modelName: 'Image',
-    tableName: 'images',
+    tableName: 'Images',
+    timestamps: true,
   }
 );
 

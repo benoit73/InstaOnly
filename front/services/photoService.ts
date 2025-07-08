@@ -1,22 +1,28 @@
-const API_BASE_URL = process.env.BACKEND_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACK_URL || 'http://localhost:3001/api';
 
 export interface Photo {
-  id: string;
-  image: string;
-  description: string;
-  account: string;
-  accountId: number;
-  isStory: boolean;
+  id: number;
+  filename: string;
+  filePath: string;
+  prompt: string;
+  description?: string;
+  accountId?: number; // Optionnel car peut être null
+  isStory?: boolean;
   likes?: number;
   comments?: number;
-  date: string;
-  status: 'draft' | 'scheduled' | 'published';
-  instagramMediaId?: string; // ID du média sur Instagram (si publié)
+  createdAt: string;
+  updatedAt: string;
+  status?: 'draft' | 'scheduled' | 'published';
+  instagramMediaId?: string;
   scheduledAt?: string;
   publishedAt?: string;
   generatedBy?: 'ai' | 'upload' | 'template';
+  account?: {
+    id: number;
+    name: string;
+  } | string; // Peut être un objet ou une string selon le backend
   metadata?: {
-    prompt?: string; // Pour les images générées par IA
+    prompt?: string;
     model?: string;
     style?: string;
     dimensions?: { width: number; height: number };
@@ -25,9 +31,9 @@ export interface Photo {
 
 export interface CreatePhotoRequest {
   image: File;
-  description: string;
+  description?: string;
   accountId: number;
-  isStory: boolean;
+  isStory?: boolean;
   status?: 'draft' | 'scheduled';
   scheduledAt?: string;
   metadata?: Photo['metadata'];
@@ -35,6 +41,7 @@ export interface CreatePhotoRequest {
 
 export interface UpdatePhotoRequest {
   description?: string;
+  prompt?: string;
   isStory?: boolean;
   status?: 'draft' | 'scheduled' | 'published';
   scheduledAt?: string;
@@ -42,262 +49,281 @@ export interface UpdatePhotoRequest {
 
 export interface GeneratePhotoRequest {
   prompt: string;
-  style?: string;
-  dimensions?: { width: number; height: number };
-  model?: string;
+  negative_prompt?: string;
+  width?: number;
+  height?: number;
+  steps?: number;
+  denoising_strength?: number;
+  cfg_scale?: number;
+  sampler_index?: number;
   accountId: number;
   description?: string;
   isStory?: boolean;
 }
 
 export const photoService = {
-  // Récupérer toutes les photos (publiées et non publiées)
+  // Récupérer toutes les photos
   async getPhotos(status?: 'draft' | 'scheduled' | 'published'): Promise<Photo[]> {
-    const url = status ? `${API_BASE_URL}/photos?status=${status}` : `${API_BASE_URL}/photos`;
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${this.getToken()}`,
-      },
-    });
-    
-    if (!response.ok) {
-      throw new Error('Erreur lors de la récupération des photos');
+    try {
+      const url = status ? `${API_BASE_URL}/photos?status=${status}` : `${API_BASE_URL}/photos`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      return result.data || result;
+    } catch (error) {
+      console.error('Erreur lors de la récupération des photos:', error);
+      throw error;
     }
-    return response.json();
   },
 
   // Récupérer les photos d'un compte spécifique
   async getPhotosByAccount(accountId: number, status?: 'draft' | 'scheduled' | 'published'): Promise<Photo[]> {
-    const url = status 
-      ? `${API_BASE_URL}/photos/account/${accountId}?status=${status}` 
-      : `${API_BASE_URL}/photos/account/${accountId}`;
+    try {
+      const url = status 
+        ? `${API_BASE_URL}/photos/account/${accountId}?status=${status}` 
+        : `${API_BASE_URL}/photos/account/${accountId}`;
+        
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${this.getToken()}`,
-      },
-    });
-    
-    if (!response.ok) {
-      throw new Error('Erreur lors de la récupération des photos du compte');
+      if (!response.ok) {
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      return result.data || result;
+    } catch (error) {
+      console.error('Erreur lors de la récupération des photos du compte:', error);
+      throw error;
     }
-    return response.json();
   },
 
   // Récupérer une photo par ID
-  async getPhoto(id: string): Promise<Photo> {
-    const response = await fetch(`${API_BASE_URL}/photos/${id}`, {
-      headers: {
-        'Authorization': `Bearer ${this.getToken()}`,
-      },
-    });
-    
-    if (!response.ok) {
-      throw new Error('Erreur lors de la récupération de la photo');
+  async getPhoto(id: number): Promise<Photo> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/photos/${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      return result.data || result;
+    } catch (error) {
+      console.error('Erreur lors de la récupération de la photo:', error);
+      throw error;
     }
-    return response.json();
   },
 
- 
+  // Générer une image de base avec IA (txt2img)
+  async generateBaseImage(generateData: GeneratePhotoRequest): Promise<Photo> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/photos/generate/base`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(generateData),
+      });
 
-  // Générer une photo avec IA
+      if (!response.ok) {
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      return result.data || result;
+    } catch (error) {
+      console.error('Erreur lors de la génération de l\'image de base:', error);
+      throw error;
+    }
+  },
+
+  // Générer une image à partir d'une autre (img2img)
+  async generateProfileImage(generateData: GeneratePhotoRequest & { baseImageId: number }): Promise<Photo> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/photos/generate/profile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(generateData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      return result.data || result;
+    } catch (error) {
+      console.error('Erreur lors de la génération de l\'image à partir du profil:', error);
+      throw error;
+    }
+  },
+
+  // Générer une photo avec IA (alias pour generateBaseImage)
   async generatePhoto(generateData: GeneratePhotoRequest): Promise<Photo> {
-    const response = await fetch(`${API_BASE_URL}/photos/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.getToken()}`,
-      },
-      body: JSON.stringify(generateData),
-    });
-
-    if (!response.ok) {
-      throw new Error('Erreur lors de la génération de la photo');
-    }
-    return response.json();
-  },
-
-  // Générer une image de base avec IA
-  async generateBaseImage(generateData: {
-    prompt: string;
-    negative_prompt?: string;
-    width: number;
-    height: number;
-    steps: number;
-    denoising_strength: number;
-    cfg_scale: number;
-    sampler_index: number;
-    accountId: number;
-    description?: string;
-    isStory: boolean;
-  }): Promise<Photo> {
-    const response = await fetch(`${API_BASE_URL}/photos/generate/base`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.getToken()}`,
-      },
-      body: JSON.stringify(generateData),
-    });
-
-    if (!response.ok) {
-      throw new Error('Erreur lors de la génération de l\'image de base');
-    }
-    return response.json();
-  },
-
-  // Générer une image à partir d'un profil
-  async generateProfileImage(generateData: {
-    prompt: string;
-    negative_prompt?: string;
-    width: number;
-    height: number;
-    steps: number;
-    denoising_strength: number;
-    cfg_scale: number;
-    sampler_index: number;
-    accountId: number;
-    baseImageId: string;
-    description?: string;
-    isStory: boolean;
-  }): Promise<Photo> {
-    const response = await fetch(`${API_BASE_URL}/photos/generate/profile`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.getToken()}`,
-      },
-      body: JSON.stringify(generateData),
-    });
-
-    if (!response.ok) {
-      throw new Error('Erreur lors de la génération de l\'image à partir du profil');
-    }
-    return response.json();
+    return this.generateBaseImage(generateData);
   },
 
   // Mettre à jour une photo
-  async updatePhoto(id: string, updateData: UpdatePhotoRequest): Promise<Photo> {
-    const response = await fetch(`${API_BASE_URL}/photos/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.getToken()}`,
-      },
-      body: JSON.stringify(updateData),
-    });
+  async updatePhoto(id: number, updateData: UpdatePhotoRequest): Promise<Photo> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/photos/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
 
-    if (!response.ok) {
-      throw new Error('Erreur lors de la mise à jour de la photo');
+      if (!response.ok) {
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      return result.data || result;
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de la photo:', error);
+      throw error;
     }
-    return response.json();
   },
 
   // Supprimer une photo
-  async deletePhoto(id: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/photos/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${this.getToken()}`,
-      },
-    });
+  async deletePhoto(id: number): Promise<void> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/photos/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-    if (!response.ok) {
-      throw new Error('Erreur lors de la suppression de la photo');
+      if (!response.ok) {
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la suppression de la photo:', error);
+      throw error;
     }
-  },
-
-  // Publier une photo sur Instagram (utilise instagramService en interne)
-  async publishPhoto(id: string): Promise<{ instagramMediaId: string; permalink: string }> {
-    const response = await fetch(`${API_BASE_URL}/photos/${id}/publish`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.getToken()}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Erreur lors de la publication de la photo');
-    }
-    return response.json();
-  },
-
-  // Programmer une photo
-  async schedulePhoto(id: string, scheduledAt: string): Promise<Photo> {
-    const response = await fetch(`${API_BASE_URL}/photos/${id}/schedule`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.getToken()}`,
-      },
-      body: JSON.stringify({ scheduledAt }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Erreur lors de la programmation de la photo');
-    }
-    return response.json();
-  },
-
-  // Récupérer les statistiques d'une photo (local et Instagram)
-  async getPhotoStats(id: string): Promise<{ 
-    likes: number; 
-    comments: number; 
-    views: number;
-    reach?: number;
-    impressions?: number;
-    saves?: number;
-    shares?: number;
-  }> {
-    const response = await fetch(`${API_BASE_URL}/photos/${id}/stats`, {
-      headers: {
-        'Authorization': `Bearer ${this.getToken()}`,
-      },
-    });
-    
-    if (!response.ok) {
-      throw new Error('Erreur lors de la récupération des statistiques');
-    }
-    return response.json();
   },
 
   // Dupliquer une photo
-  async duplicatePhoto(id: string): Promise<Photo> {
-    const response = await fetch(`${API_BASE_URL}/photos/${id}/duplicate`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.getToken()}`,
-      },
-    });
+  async duplicatePhoto(id: number): Promise<Photo> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/photos/${id}/duplicate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-    if (!response.ok) {
-      throw new Error('Erreur lors de la duplication de la photo');
+      if (!response.ok) {
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      return result.data || result;
+    } catch (error) {
+      console.error('Erreur lors de la duplication de la photo:', error);
+      throw error;
     }
-    return response.json();
   },
 
-  // Créer des variantes d'une photo (générations IA similaires)
-  async createVariants(id: string, count: number = 3): Promise<Photo[]> {
-    const response = await fetch(`${API_BASE_URL}/photos/${id}/variants`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.getToken()}`,
-      },
-      body: JSON.stringify({ count }),
-    });
+  // Créer des variantes d'une photo
+  async createVariants(id: number, count: number = 3): Promise<Photo[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/photos/${id}/variants`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ count }),
+      });
 
-    if (!response.ok) {
-      throw new Error('Erreur lors de la création des variantes');
+      if (!response.ok) {
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      return result.data || result;
+    } catch (error) {
+      console.error('Erreur lors de la création des variantes:', error);
+      throw error;
     }
-    return response.json();
   },
 
-  // Récupérer le token d'authentification
-  getToken(): string | null {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('token');
+  // Mise à jour de getImageUrl pour gérer les différents cas :
+
+  // Obtenir l'URL complète d'une image
+  getImageUrl(photo: Photo | any): string {
+    console.log("getImageUrl - photo:", photo); // Debug
+    
+    // Si c'est une image générée avec imageUrl
+    if (photo.imageUrl) {
+      // Si l'URL commence par /api, construire l'URL complète
+      if (photo.imageUrl.startsWith('/api/')) {
+        // Gardez le baseURL avec /api et ajoutez l'imageUrl
+        const baseUrl = process.env.NEXT_PUBLIC_BACK_URL?.replace('/api', '') || 'http://localhost:3001';
+        return `${baseUrl}${photo.imageUrl}`;
+      }
+      return photo.imageUrl;
     }
-    return null;
+    
+    // Si c'est une image avec un filePath direct
+    if (photo.filePath && !photo.id) {
+      // Utiliser l'API pour servir le fichier
+      return `${API_BASE_URL}/files/${photo.filePath.replace('uploads/', '')}`;
+    }
+    
+    // Structure normale avec ID
+    if (photo.id) {
+      return `${API_BASE_URL}/images/${photo.id}/file`;
+    }
+    
+    // Fallback
+    console.warn("Aucune URL d'image trouvée pour:", photo);
+    return '';
+  },
+
+  // Alternative : obtenir l'URL via le chemin direct
+  getImageDirectUrl(photo: Photo): string {
+    // Servir via les fichiers statiques (garde /api et utilise /uploads)
+    return `${API_BASE_URL}/files/${photo.filePath.replace('uploads/', '')}`;
+  },
+
+  // Méthodes pour la publication (à implémenter côté backend)
+  async publishPhoto(id: number): Promise<{ instagramMediaId: string; permalink: string }> {
+    throw new Error('Publication Instagram non implémentée dans le backend v2');
+  },
+
+  async schedulePhoto(id: number, scheduledAt: string): Promise<Photo> {
+    throw new Error('Programmation non implémentée dans le backend v2');
+  },
+
+  async getPhotoStats(id: number): Promise<{ 
+    likes: number; 
+    comments: number; 
+    views: number;
+  }> {
+    throw new Error('Statistiques non implémentées dans le backend v2');
   },
 };

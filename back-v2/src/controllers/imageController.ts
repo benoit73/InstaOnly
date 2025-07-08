@@ -1,6 +1,6 @@
 import { Response, Request } from 'express';
 import path from 'path';
-import { Image, Account } from '../models';
+import { Image, Account, User } from '../models';
 import { StableDiffusionService } from '../services/stableDiffusionService';
 import { FileService } from '../services/fileService';
 
@@ -83,13 +83,16 @@ export class ImageController {
         data: {
           id: image.id,
           filename: image.filename,
+          filePath: image.filePath, // Ajout du filePath
           prompt: image.prompt,
           negativePrompt: image.negativePrompt,
           width: image.width,
           height: image.height,
           steps: image.steps,
+          userId: image.userId,
+          accountId: image.accountId,
           createdAt: image.createdAt,
-          imageUrl: `/api/images/${image.id}`,
+          imageUrl: `/api/images/${image.id}/file`, // URL pour accéder à l'image
           isMainImage: true,
           // Informations supplémentaires de Stable Diffusion
           stableDiffusionInfo: {
@@ -267,13 +270,6 @@ export class ImageController {
             model: Account,
             as: 'account',
             attributes: ['id', 'name'],
-            include: [
-              {
-                model: Image,
-                as: 'mainImage',
-                attributes: ['id', 'filename']
-              }
-            ]
           }
         ],
         order: [['createdAt', 'DESC']],
@@ -281,24 +277,32 @@ export class ImageController {
 
       res.json({
         success: true,
-        data: images.map(img => ({
+        data: images.map((img: any) => ({
           id: img.id,
           filename: img.filename,
           originalName: img.originalName,
+          filePath: img.filePath,
           prompt: img.prompt,
           negativePrompt: img.negativePrompt,
           width: img.width,
           height: img.height,
           steps: img.steps,
+          accountId: img.accountId,
           account: img.account,
           createdAt: img.createdAt,
-          imageUrl: `/api/images/${img.id}` // URL pour accéder à l'image
+          updatedAt: img.updatedAt,
+          // URLs pour accéder aux images
+          imageUrl: `/api/images/${img.id}/file`,
+          directUrl: `/uploads/${img.filePath.replace('uploads/', '')}`,
         }))
       });
 
     } catch (error) {
       console.error('Error fetching images:', error);
-      res.status(500).json({ error: 'Failed to fetch images' });
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to fetch images' 
+      });
     }
   }
 
@@ -390,5 +394,227 @@ export class ImageController {
       console.error('Error fetching image info:', error);
       res.status(500).json({ error: 'Failed to fetch image info' });
     }
+  }
+
+  // Récupérer les images par compte
+  async getImagesByAccount(req: Request, res: Response): Promise<void> {
+    try {
+      const { accountId } = req.params;
+      const { status } = req.query;
+      
+      let whereClause: any = { accountId: parseInt(accountId) };
+      
+      if (status) {
+        whereClause.status = status;
+      }
+      
+      const images = await Image.findAll({
+        where: whereClause,
+        include: [
+          {
+            model: Account,
+            as: 'account',
+            include: [
+              {
+                model: User,
+                as: 'user',
+                attributes: ['id', 'username', 'email']
+              }
+            ]
+          }
+        ],
+        order: [['createdAt', 'DESC']]
+      });
+
+      res.json({
+        success: true,
+        data: images
+      });
+    } catch (error) {
+      console.error('Error fetching images by account:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch images',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  // Mettre à jour une image
+  async updateImage(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+      
+      const image = await Image.findByPk(id);
+      if (!image) {
+        res.status(404).json({
+          success: false,
+          error: 'Image not found'
+        });
+        return;
+      }
+      
+      await image.update(updateData);
+      
+      res.json({
+        success: true,
+        data: image
+      });
+    } catch (error) {
+      console.error('Error updating image:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to update image',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  // Supprimer une image
+  async deleteImage(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      
+      const image = await Image.findByPk(id);
+      if (!image) {
+        res.status(404).json({
+          success: false,
+          error: 'Image not found'
+        });
+        return;
+      }
+      
+      await image.destroy();
+      
+      res.json({
+        success: true,
+        message: 'Image deleted successfully'
+      });
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to delete image',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  // Dupliquer une image
+  async duplicateImage(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      
+      const originalImage = await Image.findByPk(id);
+      if (!originalImage) {
+        res.status(404).json({
+          success: false,
+          error: 'Image not found'
+        });
+        return;
+      }
+      
+      // Créer une copie physique du fichier (optionnel)
+      const fs = require('fs');
+      const path = require('path');
+      
+      const originalPath = originalImage.filePath;
+      const fileExtension = path.extname(originalPath);
+      const newFilename = `copy_${Date.now()}_${originalImage.filename}`;
+      const newFilePath = originalPath.replace(originalImage.filename, newFilename);
+      
+      // Copier le fichier physique
+      try {
+        fs.copyFileSync(originalPath, newFilePath);
+      } catch (fileError) {
+        console.warn('Could not copy physical file, using same path:', fileError);
+        // Utiliser le même chemin si la copie échoue
+      }
+      
+      const duplicatedImage = await Image.create({
+        filename: newFilename,
+        originalName: `copy_${originalImage.originalName || originalImage.filename}`,
+        filePath: fs.existsSync(newFilePath) ? newFilePath : originalImage.filePath,
+        prompt: originalImage.prompt,
+        negativePrompt: originalImage.negativePrompt,
+        width: originalImage.width,
+        height: originalImage.height,
+        steps: originalImage.steps,
+        userId: originalImage.userId,
+        accountId: originalImage.accountId
+      });
+      
+      res.json({
+        success: true,
+        data: {
+          id: duplicatedImage.id,
+          filename: duplicatedImage.filename,
+          originalName: duplicatedImage.originalName,
+          filePath: duplicatedImage.filePath,
+          prompt: duplicatedImage.prompt,
+          negativePrompt: duplicatedImage.negativePrompt,
+          width: duplicatedImage.width,
+          height: duplicatedImage.height,
+          steps: duplicatedImage.steps,
+          userId: duplicatedImage.userId,
+          accountId: duplicatedImage.accountId,
+          createdAt: duplicatedImage.createdAt,
+          imageUrl: `/api/images/${duplicatedImage.id}`
+        }
+      });
+    } catch (error) {
+      console.error('Error duplicating image:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to duplicate image',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  // Créer des variantes
+  async createVariants(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { count = 3 } = req.body;
+      
+      // À implémenter avec l'API Stable Diffusion
+      res.status(501).json({
+        success: false,
+        error: 'Variants creation not implemented yet'
+      });
+    } catch (error) {
+      console.error('Error creating variants:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to create variants',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  // Publier une photo (placeholder)
+  async publishPhoto(req: Request, res: Response): Promise<void> {
+    res.status(501).json({
+      success: false,
+      error: 'Instagram publishing not implemented yet'
+    });
+  }
+
+  // Programmer une photo (placeholder)
+  async schedulePhoto(req: Request, res: Response): Promise<void> {
+    res.status(501).json({
+      success: false,
+      error: 'Photo scheduling not implemented yet'
+    });
+  }
+
+  // Statistiques d'une photo (placeholder)
+  async getImageStats(req: Request, res: Response): Promise<void> {
+    res.status(501).json({
+      success: false,
+      error: 'Image stats not implemented yet'
+    });
   }
 }

@@ -1,10 +1,14 @@
 import { Sequelize } from 'sequelize';
-import path from 'path';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const sequelize = new Sequelize({
   dialect: 'sqlite',
-  storage: path.join(__dirname, '../../database.sqlite'),
-  logging: process.env.NODE_ENV === 'development' ? console.log : false,
+  storage: process.env.DATABASE_URL || './database.sqlite',
+  logging: false, // Mettre à true pour voir les requêtes SQL
 });
 
 export default sequelize;
+// Ou alternativement :
+// export { sequelize };

@@ -9,6 +9,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts"
   },
   "dependencies": {
+    "@types/cors": "^2.8.19",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",

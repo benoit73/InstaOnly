@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { photoService, accountService } from '@/services';
 import type { Account } from '@/services';
+import { ImageDisplay } from '@/components/ui/image-display'; // Ajout de l'import manquant
 
 interface GenerationParams {
   prompt: string;
@@ -488,13 +489,24 @@ export default function GeneratePage() {
               </div>
             ) : generatedImage ? (
               <div>
+                {/* Debug: Afficher la structure de l'image */}
+                <details className="mb-4">
+                  <summary className="text-xs text-gray-500 cursor-pointer">Debug - Structure de l'image</summary>
+                  <pre className="bg-gray-100 p-2 rounded text-xs overflow-auto max-h-32">
+                    {JSON.stringify(generatedImage, null, 2)}
+                  </pre>
+                </details>
+                
                 <div className="aspect-square rounded-lg overflow-hidden mb-4">
-                  <img
-                    src={generatedImage.image}
+                  <ImageDisplay
+                    photo={generatedImage}
                     alt="Image générée"
                     className="w-full h-full object-cover"
+                    width={512}
+                    height={512}
                   />
                 </div>
+                
                 <div className="flex space-x-3">
                   <button
                     onClick={handleSavePhoto}
