@@ -20,7 +20,7 @@ export function ImageDisplay({ photo, alt, className, width, height }: ImageDisp
   const [imageSrc, setImageSrc] = useState<string>(() => {
     // Construire l'URL de l'image
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-    return `${baseUrl}/api/photos/${photo.id}/file`
+    return `${baseUrl}/photos/${photo.id}/file`
   })
 
   const [imageError, setImageError] = useState(false)

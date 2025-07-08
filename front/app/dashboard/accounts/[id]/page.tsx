@@ -180,7 +180,7 @@ export default function AccountDetailPage({ params }: { params: { id: string } }
   const handleSaveAccount = async () => {
     try {
       // Simuler un appel API (remplacer par votre vraie API)
-      // const response = await fetch(`/api/accounts/${accountId}`, {
+      // const response = await fetch(`/accounts/${accountId}`, {
       //   method: 'PUT',
       //   headers: { 'Content-Type': 'application/json' },
       //   body: JSON.stringify(editForm)

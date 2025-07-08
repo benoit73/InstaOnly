@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACK_URL || 'http://localhost:3001/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACK_URL || 'http://localhost:3001/';
 
 export interface Photo {
   id: number;
@@ -283,10 +283,10 @@ class ImageService {
     
     // Si c'est une image générée avec imageUrl
     if (photo.imageUrl) {
-      // Si l'URL commence par /api, construire l'URL complète
-      if (photo.imageUrl.startsWith('/api/')) {
-        // Gardez le baseURL avec /api et ajoutez l'imageUrl
-        const baseUrl = process.env.NEXT_PUBLIC_BACK_URL?.replace('/api', '') || 'http://localhost:3001';
+      // Si l'URL commence par /, construire l'URL complète
+      if (photo.imageUrl.startsWith('/')) {
+        // Gardez le baseURL avec / et ajoutez l'imageUrl
+        const baseUrl = process.env.NEXT_PUBLIC_BACK_URL?.replace('/', '') || 'http://localhost:3001';
         return `${baseUrl}${photo.imageUrl}`;
       }
       return photo.imageUrl;
@@ -310,7 +310,7 @@ class ImageService {
 
   // Alternative : obtenir l'URL via le chemin direct
   getImageDirectUrl(photo: Photo): string {
-    // Servir via les fichiers statiques (garde /api et utilise /uploads)
+    // Servir via les fichiers statiques (garde / et utilise /uploads)
     return `${API_BASE_URL}/files/${photo.filePath.replace('uploads/', '')}`;
   }
 

@@ -43,27 +43,14 @@ const serveImageFile = async (req: any, res: any) => {
 };
 
 // Routes principales pour les images
-router.get('/images', imageController.getImages.bind(imageController));
-router.get('/images/:id/file', serveImageFile); // IMPORTANT: servir les fichiers
-router.get('/images/:id/info', imageController.getImageInfo.bind(imageController));
-router.get('/images/:id', imageController.getImageById.bind(imageController)); // Cette route doit être après /file
+router.get('/images/:id/file', serveImageFile); 
+router.get('/images/:id', imageController.getImageById.bind(imageController));
 router.delete('/images/:id', imageController.deleteImage.bind(imageController));
 router.get('/images/account/:accountId', imageController.getImagesByAccount.bind(imageController));
-
-// Routes pour les photos (alias des images pour correspondre au frontend)
-router.get('/photos', imageController.getImages.bind(imageController));
-router.get('/photos/:id/file', serveImageFile); // IMPORTANT: servir les fichiers
-router.get('/photos/:id/info', imageController.getImageInfo.bind(imageController));
-router.get('/photos/:id', imageController.getImageById.bind(imageController));
-router.put('/photos/:id', imageController.updateImage.bind(imageController));
-router.delete('/photos/:id', imageController.deleteImage.bind(imageController));
-router.get('/photos/account/:accountId', imageController.getImagesByAccount.bind(imageController));
-router.post('/photos/:id/duplicate', imageController.duplicateImage.bind(imageController));
-router.post('/photos/:id/variants', imageController.createVariants.bind(imageController));
+router.get('/images/users/:userId', imageController.getImages.bind(imageController));
 
 // Routes de génération
-router.post('/photos/generate/txt2txt', imageController.generateTxt2img.bind(imageController));
-router.post('/photos/generate/img2img', imageController.generateImg2img.bind(imageController));
+router.post('/images/generate', imageController.generateImg.bind(imageController));
 
 // Routes pour la publication (à implémenter)
 router.post('/photos/:id/publish', imageController.publishPhoto.bind(imageController));

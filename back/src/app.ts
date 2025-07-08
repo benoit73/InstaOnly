@@ -41,7 +41,7 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Route pour servir les images directement par nom de fichier (optionnel)
-app.use('/api/files', express.static(path.join(__dirname, '../uploads')));
+app.use('/files', express.static(path.join(__dirname, '../uploads')));
 
 // Rate limiting
 const limiter = rateLimit({
@@ -67,9 +67,9 @@ app.use((req, res, next) => {
 });
 
 // Routes
-app.use('/api', imageRoutes);
-app.use('/api', userRoutes);
-app.use('/api', accountRoutes);
+app.use('/', imageRoutes);
+app.use('/', userRoutes);
+app.use('/', accountRoutes);
 
 // Route de test
 app.get('/health', (req, res) => {

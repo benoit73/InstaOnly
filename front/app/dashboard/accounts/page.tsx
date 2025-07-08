@@ -27,9 +27,9 @@ export default function AccountsPage() {
       const data = await accountService.getAccounts()
       console.log('Loaded accounts:', data)
       setAccounts(data)
-    } catch (err: any) {
-      console.error('Erreur lors du chargement des comptes:', err)
-      setError(`Erreur lors du chargement des comptes. ${err.message ?? ''}`)
+    } catch (error) {
+      console.error('Erreur lors du chargement des comptes:', error)
+      setError(`Erreur lors du chargement des comptes. URL: ${process.env.NEXT_PUBLIC_BACK_URL || 'http://localhost:3001/'}`)
     } finally {
       setLoading(false)
     }
@@ -106,89 +106,83 @@ export default function AccountsPage() {
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {accounts.map((account) => {
-            const imageSrc = account.mainImage
-              ? `${process.env.NEXT_PUBLIC_BACK_URL?.replace('/api', '') || 'http://localhost:3001'}/api/images/${account.mainImage.id}`
-              : null
-
-            return (
-              <Card key={account.id}>
-                <CardHeader className="flex flex-row items-center gap-4">
-                  <div className="relative h-12 w-12 rounded-full overflow-hidden bg-gray-200">
-                    {imageSrc ? (
-                      <Image
-                        src={imageSrc}
-                        alt={account.name}
-                        fill
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Instagram className="h-6 w-6 text-gray-500" />
-                      </div>
-                    )}
+          {accounts.map((account) => (
+            <Card key={account.id}>
+              <CardHeader className="flex flex-row items-center gap-4">
+                <div className="relative h-12 w-12 rounded-full overflow-hidden bg-gray-200">
+                  {account.mainImage ? (
+                    <Image
+                      src={`${process.env.NEXT_PUBLIC_BACK_URL?.replace('/', '') || 'http://localhost:3001'}/images/${account.mainImage.id}`}
+                      alt={account.name}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Instagram className="h-6 w-6 text-gray-500" />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <CardTitle className="flex items-center">
+                    <Link href={`/dashboard/accounts/${account.id}`} className="hover:underline">
+                      {account.name}
+                    </Link>
+                  </CardTitle>
+                  <CardDescription>
+                    {account.description || 'Aucune description'}
+                  </CardDescription>
+                  <CardDescription className="text-xs text-muted-foreground">
+                    Par {account.user?.username || 'Utilisateur inconnu'}
+                  </CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4 text-center">
+                  <div>
+                    <p className="text-2xl font-bold">{account.imagesCount || 0}</p>
+                    <p className="text-xs text-muted-foreground">Images</p>
                   </div>
                   <div>
-                    <CardTitle className="flex items-center">
-                      <Link href={`/dashboard/accounts/${account.id}`} className="hover:underline">
-                        {account.name}
-                      </Link>
-                    </CardTitle>
-                    <CardDescription>
-                      {account.description || 'Aucune description'}
-                    </CardDescription>
-                    <CardDescription className="text-xs text-muted-foreground">
-                      Par {account.user?.username || 'Utilisateur inconnu'}
-                    </CardDescription>
+                    <p className="text-2xl font-bold">-</p>
+                    <p className="text-xs text-muted-foreground">Publications</p>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4 text-center">
-                    <div>
-                      <p className="text-2xl font-bold">{account.imagesCount || 0}</p>
-                      <p className="text-xs text-muted-foreground">Images</p>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold">-</p>
-                      <p className="text-xs text-muted-foreground">Publications</p>
-                    </div>
-                  </div>
-                  <div className="mt-4 text-center">
-                    <span className="text-sm text-muted-foreground">
-                      Créé le {new Date(account.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                  <Link href={`/dashboard/accounts/${account.id}`}>
-                    <Button variant="outline" size="sm">
-                      <BarChart3 className="mr-2 h-4 w-4" />
-                      Détails
-                    </Button>
-                  </Link>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEditAccount(account.id)}
-                    >
-                      <Edit className="mr-2 h-4 w-4" />
-                      Modifier
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-red-500"
-                      onClick={() => handleDeleteAccount(account.id)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Supprimer
-                    </Button>
-                  </div>
-                </CardFooter>
-              </Card>
-            )
-          })}
+                </div>
+                <div className="mt-4 text-center">
+                  <span className="text-sm text-muted-foreground">
+                    Créé le {new Date(account.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Link href={`/dashboard/accounts/${account.id}`}>
+                  <Button variant="outline" size="sm">
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    Détails
+                  </Button>
+                </Link>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleEditAccount(account.id)}
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Modifier
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-red-500"
+                    onClick={() => handleDeleteAccount(account.id)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Supprimer
+                  </Button>
+                </div>
+              </CardFooter>
+            </Card>
+          ))}
         </div>
       )}
     </div>

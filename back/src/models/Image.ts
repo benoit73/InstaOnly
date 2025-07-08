@@ -4,7 +4,6 @@ import sequelize from '../config/database';
 interface ImageAttributes {
   id: number;
   filename: string;
-  originalName: string;
   filePath: string;
   prompt: string;
   negativePrompt?: string;
@@ -24,7 +23,6 @@ interface ImageCreationAttributes extends Optional<ImageAttributes, 'id' | 'crea
 class Image extends Model<ImageAttributes, ImageCreationAttributes> implements ImageAttributes {
   public id!: number;
   public filename!: string;
-  public originalName!: string;
   public filePath!: string;
   public prompt!: string;
   public negativePrompt?: string;
@@ -51,10 +49,6 @@ Image.init(
       primaryKey: true,
     },
     filename: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    originalName: {
       type: DataTypes.STRING,
       allowNull: false,
     },

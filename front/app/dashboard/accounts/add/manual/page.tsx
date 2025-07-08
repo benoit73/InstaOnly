@@ -23,7 +23,7 @@ export default function AddAccountManualPage() {
 
     try {
       // Appel à votre API backend pour ajouter le compte
-      const response = await fetch('http://localhost:5000/api/accounts', {
+      const response = await fetch('http://localhost:5000/accounts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

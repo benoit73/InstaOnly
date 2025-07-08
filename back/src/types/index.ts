@@ -7,6 +7,7 @@ export interface GenerateRequest {
     denoising_strength?: number;
     init_images?: string[];
     accountId?: number;
+    type?: string;
 }
 
 export interface StableDiffusionResponse {
