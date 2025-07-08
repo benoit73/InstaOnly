@@ -8,12 +8,8 @@ import { PlusCircle, Edit, Trash2, History, Filter } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useState, useEffect } from "react"
-<<<<<<< HEAD
-import { photoService, Photo } from "@/services/imageService"
-=======
 import { imageService, Photo } from "@/services/imageService"
 import { accountService, Account } from "@/services"
->>>>>>> 317cc8d (fix plein de trucs)
 import { ImageDisplay } from "@/components/ui/image-display"
 
 export default function PhotosPage() {
