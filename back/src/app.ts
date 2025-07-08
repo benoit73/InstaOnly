@@ -93,12 +93,13 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 // Initialiser la base de données et démarrer le serveur
 async function startServer() {
   try {
+    console.log(`Démarrage du BACK sur port ${process.env.PORT}...`);
     await sequelize.authenticate();
     console.log('Database connection established successfully.');
     
     await sequelize.sync({ force: false });
     console.log('Database synchronized successfully.');
-    
+        
     app.listen(PORT, () => {
       console.log(`Server is running on http://localhost:${PORT}`);
       console.log(`Stable Diffusion API URL: ${process.env.STABLE_DIFFUSION_API_URL || 'http://localhost:7860'}`);

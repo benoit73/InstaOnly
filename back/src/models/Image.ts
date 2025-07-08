@@ -1,4 +1,4 @@
-import { DataTypes, Model, Optional, Association } from 'sequelize';
+import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../config/database';
 
 interface ImageAttributes {
@@ -34,19 +34,13 @@ class Image extends Model<ImageAttributes, ImageCreationAttributes> implements I
   public seed?: number;
   public userId!: number;
   public accountId?: number;
-  public isDeleted?: boolean; // NOUVEAU CHAMP
+  public isDeleted?: boolean;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
   // Associations
   public account?: any;
   public user?: any;
-
-  // Définition des associations pour TypeScript
-  public static associations: {
-    account: Association<Image, any>;
-    user: Association<Image, any>;
-  };
 }
 
 Image.init(
@@ -91,35 +85,34 @@ Image.init(
     seed: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      comment: 'Seed used for image generation'
     },
-    userId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'Users',
-        key: 'id',
-      },
+        userId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: 'users', // ✅ nom réel de la table, en minuscule
+            key: 'id',
+        },
     },
     accountId: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      references: {
-        model: 'Accounts',
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+        model: 'accounts', // ✅ pareil ici
         key: 'id',
-      },
     },
+    },
+
     isDeleted: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
-      comment: 'Soft delete flag for images'
     },
   },
   {
     sequelize,
     modelName: 'Image',
-    tableName: 'Images',
+    tableName: 'images',
     timestamps: true,
   }
 );

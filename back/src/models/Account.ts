@@ -52,21 +52,22 @@ Account.init(
       allowNull: true,
     },
     userId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'users',
-        key: 'id',
-      },
-    },
-    mainImageId: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      references: {
-        model: 'images',
-        key: 'id',
-      },
-    },
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: 'users', // ✅
+            key: 'id',
+        },
+        },
+        mainImageId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'images', // ✅
+            key: 'id',
+        },
+        },
+
   },
   {
     sequelize,

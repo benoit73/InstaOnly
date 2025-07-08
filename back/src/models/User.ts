@@ -1,4 +1,4 @@
-import { DataTypes, Model, Optional, Association, HasManyGetAssociationsMixin } from 'sequelize';
+import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../config/database';
 
 interface UserAttributes {
@@ -10,7 +10,7 @@ interface UserAttributes {
   updatedAt?: Date;
 }
 
-interface UserCreationAttributes extends Optional<UserAttributes, 'id'> {}
+interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
 
 class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   public id!: number;
@@ -20,19 +20,9 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
-  // Associations
+  // Associations (déclarées mais pas définies ici)
   public accounts?: any[];
-  public images?: any[];
-  
-  // Méthodes d'association
-  public getAccounts!: HasManyGetAssociationsMixin<any>;
-  public getImages!: HasManyGetAssociationsMixin<any>;
-
-  // Déclarations des associations
-  public static associations: {
-    accounts: Association<User, any>;
-    images: Association<User, any>;
-  };
+  public userImages?: any[];
 }
 
 User.init(
@@ -51,9 +41,6 @@ User.init(
       type: DataTypes.STRING,
       allowNull: false,
       unique: true,
-      validate: {
-        isEmail: true,
-      },
     },
     password: {
       type: DataTypes.STRING,
@@ -64,7 +51,10 @@ User.init(
     sequelize,
     modelName: 'User',
     tableName: 'users',
+    timestamps: true,
   }
 );
+
+// NE PAS DÉFINIR LES ASSOCIATIONS ICI - elles sont dans associations.ts
 
 export default User;
