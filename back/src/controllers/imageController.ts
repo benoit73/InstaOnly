@@ -74,16 +74,16 @@ export class ImageController {
         accountId: accountId,
       });
 
-      // Définir cette image comme image principale du compte
-      await account.update({ mainImageId: image.id });
+      // NE PLUS définir automatiquement cette image comme image principale
+      // await account.update({ mainImageId: image.id }); // SUPPRIMÉ
 
       res.status(201).json({
         success: true,
-        message: 'Main image generated and set successfully',
+        message: 'Image generated successfully', // Message modifié
         data: {
           id: image.id,
           filename: image.filename,
-          filePath: image.filePath, // Ajout du filePath
+          filePath: image.filePath,
           prompt: image.prompt,
           negativePrompt: image.negativePrompt,
           width: image.width,
@@ -92,8 +92,8 @@ export class ImageController {
           userId: image.userId,
           accountId: image.accountId,
           createdAt: image.createdAt,
-          imageUrl: `/api/images/${image.id}/file`, // URL pour accéder à l'image
-          isMainImage: true,
+          imageUrl: `/api/images/${image.id}/file`,
+          // isMainImage: true, // SUPPRIMÉ car ce n'est plus automatiquement l'image principale
           // Informations supplémentaires de Stable Diffusion
           stableDiffusionInfo: {
             parameters: result.parameters,
@@ -121,8 +121,8 @@ export class ImageController {
     }
   }
 
-  // Méthode pour générer une image basée sur une image existante (img2img)
-  async generateImage(req: Request, res: Response) {
+  // Méthode pour générer une image basée sur l'image principale du compte (img2img)
+  async generateImageFromImage(req: Request, res: Response) {
     try {
       const {
         prompt,
@@ -131,51 +131,43 @@ export class ImageController {
         height = 512,
         steps = 20,
         denoising_strength = 0.75,
-        init_images,
-        accountId,
-        useMainImage = false
+        accountId
       } = req.body;
 
       if (!prompt) {
         return res.status(400).json({ error: 'Prompt is required' });
       }
 
-      let baseImages: string[] = [];
+      if (!accountId) {
+        return res.status(400).json({ error: 'accountId is required' });
+      }
 
-      // Si on utilise l'image principale du compte
-      if (useMainImage && accountId) {
-        const account = await Account.findOne({
-          where: { id: accountId },
-          include: [
-            {
-              model: Image,
-              as: 'mainImage',
-              attributes: ['id', 'filename', 'filePath']
-            }
-          ]
-        });
+      // Vérifier que le compte existe et a une image principale
+      const account = await Account.findOne({
+        where: { id: accountId },
+        include: [
+          {
+            model: Image,
+            as: 'mainImage',
+            attributes: ['id', 'filename', 'filePath']
+          }
+        ]
+      });
 
-        if (!account) {
-          return res.status(404).json({ error: 'Account not found' });
-        }
+      if (!account) {
+        return res.status(404).json({ error: 'Account not found' });
+      }
 
-        if (!account.mainImage) {
-          return res.status(400).json({ error: 'No main image found for this account. Please generate a main image first.' });
-        }
-
-        // Convertir l'image principale en base64
-        const fs = require('fs');
-        const imageBuffer = fs.readFileSync(account.mainImage.filePath);
-        const base64Image = imageBuffer.toString('base64');
-        baseImages = [base64Image];
-      } else if (init_images && init_images.length > 0) {
-        // Utiliser les images fournies dans la requête
-        baseImages = init_images;
-      } else {
-        return res.status(400).json({ error: 'Either init_images or useMainImage with accountId must be provided for img2img' });
+      if (!account.mainImage) {
+        return res.status(400).json({ error: 'No main image found for this account. Please generate a main image first.' });
       }
 
       console.log(`Starting image generation with img2img, prompt: "${prompt}"`);
+
+      // Convertir l'image principale en base64
+      const fs = require('fs');
+      const imageBuffer = fs.readFileSync(account.mainImage.filePath);
+      const base64Image = imageBuffer.toString('base64');
 
       // Utiliser img2img pour générer l'image
       const result = await this.stableDiffusionService.img2img({
@@ -185,7 +177,7 @@ export class ImageController {
         height,
         steps,
         denoising_strength,
-        init_images: baseImages
+        init_images: [base64Image]
       });
 
       console.log('Image generation completed');
@@ -210,23 +202,27 @@ export class ImageController {
         height,
         steps,
         userId: 1, // userId par défaut
-        accountId: accountId || null,
+        accountId: accountId,
       });
 
       res.status(201).json({
         success: true,
-        message: 'Image generated successfully',
+        message: 'Image generated successfully from main image',
         data: {
           id: image.id,
           filename: image.filename,
+          filePath: image.filePath,
           prompt: image.prompt,
           negativePrompt: image.negativePrompt,
           width: image.width,
           height: image.height,
           steps: image.steps,
           denoising_strength: denoising_strength,
+          userId: image.userId,
+          accountId: image.accountId,
           createdAt: image.createdAt,
-          imageUrl: `/api/images/${image.id}`,
+          imageUrl: `/api/images/${image.id}/file`,
+          baseImageId: account.mainImage.id, // ID de l'image de base utilisée
           // Informations supplémentaires de Stable Diffusion
           stableDiffusionInfo: {
             parameters: result.parameters,
@@ -236,7 +232,7 @@ export class ImageController {
       });
 
     } catch (error: any) {
-      console.error('Error generating image:', error);
+      console.error('Error generating image from image:', error);
       
       if (error.name === 'AbortError') {
         res.status(408).json({ 
@@ -247,7 +243,7 @@ export class ImageController {
       } else {
         res.status(500).json({ 
           success: false,
-          error: 'Failed to generate image',
+          error: 'Failed to generate image from image',
           message: error.message || 'Unknown error occurred'
         });
       }
@@ -610,11 +606,5 @@ export class ImageController {
     });
   }
 
-  // Statistiques d'une photo (placeholder)
-  async getImageStats(req: Request, res: Response): Promise<void> {
-    res.status(501).json({
-      success: false,
-      error: 'Image stats not implemented yet'
-    });
+
   }
-}

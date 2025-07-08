@@ -58,16 +58,14 @@ router.get('/photos/:id/file', serveImageFile); // Utiliser la même fonction
 router.put('/photos/:id', imageController.updateImage.bind(imageController));
 router.delete('/photos/:id', imageController.deleteImage.bind(imageController));
 router.get('/photos/account/:accountId', imageController.getImagesByAccount.bind(imageController));
-router.get('/photos/:id/stats', imageController.getImageStats.bind(imageController));
 router.post('/photos/:id/duplicate', imageController.duplicateImage.bind(imageController));
 router.post('/photos/:id/variants', imageController.createVariants.bind(imageController));
 
 // Routes de génération
 router.post('/photos/generate/base', imageController.generateMainImage.bind(imageController));
-router.post('/photos/generate/profile', imageController.generateImage.bind(imageController));
+router.post('/photos/generate/fromimage', imageController.generateImageFromImage.bind(imageController));
 router.post('/photos/generate', imageController.generateMainImage.bind(imageController));
 router.post('/generate-main-image', imageController.generateMainImage.bind(imageController));
-router.post('/generate-image', imageController.generateImage.bind(imageController));
 
 // Routes pour la publication (à implémenter)
 router.post('/photos/:id/publish', imageController.publishPhoto.bind(imageController));

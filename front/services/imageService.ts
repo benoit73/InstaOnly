@@ -61,7 +61,12 @@ export interface GeneratePhotoRequest {
   isStory?: boolean;
 }
 
-export const photoService = {
+class ImageService {
+  // Génère l'URL pour accéder à un fichier d'image par ID
+  getImageFileUrl(imageId: number): string {
+    return `${API_BASE_URL}/photos/${imageId}/file`;
+  }
+
   // Récupérer toutes les photos
   async getPhotos(status?: 'draft' | 'scheduled' | 'published'): Promise<Photo[]> {
     try {
@@ -83,7 +88,7 @@ export const photoService = {
       console.error('Erreur lors de la récupération des photos:', error);
       throw error;
     }
-  },
+  }
 
   // Récupérer les photos d'un compte spécifique
   async getPhotosByAccount(accountId: number, status?: 'draft' | 'scheduled' | 'published'): Promise<Photo[]> {
@@ -109,7 +114,7 @@ export const photoService = {
       console.error('Erreur lors de la récupération des photos du compte:', error);
       throw error;
     }
-  },
+  }
 
   // Récupérer une photo par ID
   async getPhoto(id: number): Promise<Photo> {
@@ -131,7 +136,7 @@ export const photoService = {
       console.error('Erreur lors de la récupération de la photo:', error);
       throw error;
     }
-  },
+  }
 
   // Générer une image de base avec IA (txt2img)
   async generateBaseImage(generateData: GeneratePhotoRequest): Promise<Photo> {
@@ -154,12 +159,12 @@ export const photoService = {
       console.error('Erreur lors de la génération de l\'image de base:', error);
       throw error;
     }
-  },
+  }
 
   // Générer une image à partir d'une autre (img2img)
-  async generateProfileImage(generateData: GeneratePhotoRequest & { baseImageId: number }): Promise<Photo> {
+  async generateImageFromImage(generateData: GeneratePhotoRequest & { baseImageId: number }): Promise<Photo> {
     try {
-      const response = await fetch(`${API_BASE_URL}/photos/generate/profile`, {
+      const response = await fetch(`${API_BASE_URL}/photos/generate/fromimage`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -177,12 +182,12 @@ export const photoService = {
       console.error('Erreur lors de la génération de l\'image à partir du profil:', error);
       throw error;
     }
-  },
+  }
 
   // Générer une photo avec IA (alias pour generateBaseImage)
   async generatePhoto(generateData: GeneratePhotoRequest): Promise<Photo> {
     return this.generateBaseImage(generateData);
-  },
+  }
 
   // Mettre à jour une photo
   async updatePhoto(id: number, updateData: UpdatePhotoRequest): Promise<Photo> {
@@ -205,7 +210,7 @@ export const photoService = {
       console.error('Erreur lors de la mise à jour de la photo:', error);
       throw error;
     }
-  },
+  }
 
   // Supprimer une photo
   async deletePhoto(id: number): Promise<void> {
@@ -224,7 +229,7 @@ export const photoService = {
       console.error('Erreur lors de la suppression de la photo:', error);
       throw error;
     }
-  },
+  }
 
   // Dupliquer une photo
   async duplicatePhoto(id: number): Promise<Photo> {
@@ -246,7 +251,7 @@ export const photoService = {
       console.error('Erreur lors de la duplication de la photo:', error);
       throw error;
     }
-  },
+  }
 
   // Créer des variantes d'une photo
   async createVariants(id: number, count: number = 3): Promise<Photo[]> {
@@ -269,9 +274,7 @@ export const photoService = {
       console.error('Erreur lors de la création des variantes:', error);
       throw error;
     }
-  },
-
-  // Mise à jour de getImageUrl pour gérer les différents cas :
+  }
 
   // Obtenir l'URL complète d'une image
   getImageUrl(photo: Photo | any): string {
@@ -302,22 +305,22 @@ export const photoService = {
     // Fallback
     console.warn("Aucune URL d'image trouvée pour:", photo);
     return '';
-  },
+  }
 
   // Alternative : obtenir l'URL via le chemin direct
   getImageDirectUrl(photo: Photo): string {
     // Servir via les fichiers statiques (garde /api et utilise /uploads)
     return `${API_BASE_URL}/files/${photo.filePath.replace('uploads/', '')}`;
-  },
+  }
 
   // Méthodes pour la publication (à implémenter côté backend)
   async publishPhoto(id: number): Promise<{ instagramMediaId: string; permalink: string }> {
     throw new Error('Publication Instagram non implémentée dans le backend v2');
-  },
+  }
 
   async schedulePhoto(id: number, scheduledAt: string): Promise<Photo> {
     throw new Error('Programmation non implémentée dans le backend v2');
-  },
+  }
 
   async getPhotoStats(id: number): Promise<{ 
     likes: number; 
@@ -325,5 +328,10 @@ export const photoService = {
     views: number;
   }> {
     throw new Error('Statistiques non implémentées dans le backend v2');
-  },
-};
+  }
+}
+
+export const imageService = new ImageService();
+
+// Export pour compatibilité avec l'ancien photoService
+export const photoService = imageService;

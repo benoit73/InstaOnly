@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { photoService, accountService } from '@/services';
+import { useState, useEffect, useCallback } from 'react';
+import { photoService, accountService, imageService } from '@/services';
 import type { Account } from '@/services';
 import { ImageDisplay } from '@/components/ui/image-display';
+import { ImagePreview } from '@/components/ui/image-preview';
 
 interface GenerationParams {
   prompt: string;
@@ -24,7 +25,7 @@ interface BaseImageGenerationRequest extends GenerationParams {
 
 interface ProfileImageGenerationRequest extends GenerationParams {
   accountId: number;
-  baseImageId: number; // Changé de string à number
+  baseImageId: number;
   description?: string;
   isStory: boolean;
 }
@@ -33,10 +34,9 @@ export default function GeneratePage() {
   const [mode, setMode] = useState<'base' | 'profile'>('base');
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<number | null>(null);
-  const [selectedAccountData, setSelectedAccountData] = useState<(Account & { mainImage?: any }) | null>(null);
+  const [selectedAccountData, setSelectedAccountData] = useState<Account | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(false);
-  const [isLoadingAccountData, setIsLoadingAccountData] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<any>(null);
 
   const [params, setParams] = useState<GenerationParams>({
@@ -65,45 +65,44 @@ export default function GeneratePage() {
     'PLMS',
   ];
 
+  // Charger les comptes
   useEffect(() => {
+    const loadAccounts = async () => {
+      setIsLoadingAccounts(true);
+      try {
+        const accountsData = await accountService.getAccounts();
+        setAccounts(accountsData);
+      } catch (error) {
+        console.error('Erreur lors du chargement des comptes:', error);
+      } finally {
+        setIsLoadingAccounts(false);
+      }
+    };
+
     loadAccounts();
   }, []);
 
+  // Charger les données du compte sélectionné
   useEffect(() => {
-    if (selectedAccount) {
-      loadAccountData();
-    } else {
-      setSelectedAccountData(null);
-    }
+    const loadAccountData = async () => {
+      if (selectedAccount) {
+        try {
+          // Charger les données du compte complet depuis l'API
+          const accountData = await accountService.getAccount(selectedAccount);
+          setSelectedAccountData(accountData);
+          
+          // Pas besoin de loadBaseImage, les données sont déjà dans accountData.mainImage
+        } catch (error) {
+          console.error('Erreur lors du chargement du compte:', error);
+          setSelectedAccountData(null);
+        }
+      } else {
+        setSelectedAccountData(null);
+      }
+    };
+
+    loadAccountData();
   }, [selectedAccount]);
-
-  const loadAccounts = async () => {
-    setIsLoadingAccounts(true);
-    try {
-      const accountsData = await accountService.getAccounts();
-      setAccounts(accountsData);
-    } catch (error) {
-      console.error('Erreur lors du chargement des comptes:', error);
-      alert('Erreur lors du chargement des comptes');
-    } finally {
-      setIsLoadingAccounts(false);
-    }
-  };
-
-  const loadAccountData = async () => {
-    if (!selectedAccount) return;
-    
-    setIsLoadingAccountData(true);
-    try {
-      const accountData = await accountService.getAccountWithMainImage(selectedAccount);
-      setSelectedAccountData(accountData);
-    } catch (error) {
-      console.error('Erreur lors du chargement des données du compte:', error);
-      setSelectedAccountData(null);
-    } finally {
-      setIsLoadingAccountData(false);
-    }
-  };
 
   const handleParamChange = (key: keyof GenerationParams, value: string | number) => {
     setParams(prev => ({
@@ -118,7 +117,7 @@ export default function GeneratePage() {
       return;
     }
 
-    if (mode === 'profile' && (!selectedAccountData?.mainImage)) {
+    if (mode === 'profile' && !selectedAccountData?.mainImage?.id) {
       alert('Ce compte n\'a pas d\'image principale. Veuillez d\'abord définir une image principale pour ce compte.');
       return;
     }
@@ -147,10 +146,11 @@ export default function GeneratePage() {
           isStory: formData.isStory,
         };
 
-        result = await photoService.generateProfileImage(generateData);
+        result = await photoService.generateImageFromImage(generateData);
       }
 
       setGeneratedImage(result);
+      
     } catch (error) {
       console.error('Erreur lors de la génération:', error);
       alert('Erreur lors de la génération de l\'image');
@@ -160,11 +160,13 @@ export default function GeneratePage() {
   };
 
   const handleSavePhoto = async () => {
-    if (!generatedImage) return;
+    if (!generatedImage || !selectedAccount) return;
 
     try {
-      // L'image est déjà sauvegardée lors de la génération
-      alert('Image sauvegardée avec succès !');
+      // Définir l'image générée comme image principale du compte
+      await accountService.setMainImage(selectedAccount, generatedImage.id);
+      
+      alert('Image sauvegardée et définie comme image principale avec succès !');
       setGeneratedImage(null);
       setParams({
         prompt: '',
@@ -176,10 +178,20 @@ export default function GeneratePage() {
         cfg_scale: 7.5,
         sampler_index: 0,
       });
-      setFormData({ description: '', isStory: false });
+      setFormData({ description: '' });
+      
+      // Recharger les données du compte pour mettre à jour l'image principale affichée
+      if (selectedAccount) {
+        try {
+          const accountData = await accountService.getAccount(selectedAccount);
+          setSelectedAccountData(accountData);
+        } catch (error) {
+          console.error('Erreur lors du rechargement du compte:', error);
+        }
+      }
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
-      alert('Erreur lors de la sauvegarde');
+      alert('Erreur lors de la sauvegarde de l\'image principale');
     }
   };
 
@@ -238,7 +250,7 @@ export default function GeneratePage() {
                 </option>
                 {accounts.map((account) => (
                   <option key={account.id} value={account.id}>
-                    @{account.username} {account.isConnected ? '✓' : '⚠️ Non connecté'}
+                    {account.name}
                   </option>
                 ))}
               </select>
@@ -248,55 +260,6 @@ export default function GeneratePage() {
                 </p>
               )}
             </div>
-
-            {/* Main Image Status (Profile Mode) */}
-            {mode === 'profile' && selectedAccount && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Image Principale du Compte
-                </label>
-                {isLoadingAccountData ? (
-                  <div className="flex items-center justify-center h-32 bg-gray-100 rounded-lg">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  </div>
-                ) : selectedAccountData?.mainImage ? (
-                  <div className="border-2 border-green-500 rounded-lg p-2 bg-green-50">
-                    <div className="flex items-center space-x-3">
-                      <img
-                        src={photoService.getImageUrl(selectedAccountData.mainImage)}
-                        alt="Image principale"
-                        className="w-16 h-16 object-cover rounded-lg"
-                      />
-                      <div>
-                        <p className="text-sm font-medium text-green-800">
-                          ✓ Image principale définie
-                        </p>
-                        <p className="text-xs text-green-600">
-                          {selectedAccountData.mainImage.filename}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {selectedAccountData.mainImage.prompt?.substring(0, 50)}...
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="border-2 border-red-300 rounded-lg p-4 bg-red-50">
-                    <div className="flex items-center space-x-2">
-                      <div className="text-red-500">⚠️</div>
-                      <div>
-                        <p className="text-sm font-medium text-red-800">
-                          Aucune image principale définie
-                        </p>
-                        <p className="text-xs text-red-600">
-                          Veuillez d'abord définir une image principale pour ce compte dans la section "Comptes".
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Description */}
             <div className="mb-4">
@@ -462,13 +425,13 @@ export default function GeneratePage() {
                 isLoading || 
                 !selectedAccount || 
                 !params.prompt || 
-                (mode === 'profile' && !selectedAccountData?.mainImage)
+                (mode === 'profile' && !selectedAccountData?.mainImage?.id)
               }
               className={`w-full py-3 px-6 rounded-lg font-medium transition-colors ${
                 isLoading || 
                 !selectedAccount || 
                 !params.prompt || 
-                (mode === 'profile' && !selectedAccountData?.mainImage)
+                (mode === 'profile' && !selectedAccountData?.mainImage?.id)
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-blue-600 text-white hover:bg-blue-700'
               }`}
@@ -480,79 +443,49 @@ export default function GeneratePage() {
 
         {/* Preview Panel */}
         <div className="space-y-6">
-          {/* Main Image Preview (Profile Mode) */}
-          {mode === 'profile' && selectedAccountData?.mainImage && (
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-lg font-semibold mb-4">Image Principale du Compte</h3>
-              <div className="aspect-square rounded-lg overflow-hidden">
-                <ImageDisplay
-                  photo={selectedAccountData.mainImage}
-                  alt="Image principale"
-                  className="w-full h-full object-cover"
-                  width={400}
-                  height={400}
-                />
-              </div>
-              <div className="mt-2 text-sm text-gray-600">
-                <p><strong>Prompt:</strong> {selectedAccountData.mainImage.prompt}</p>
-                <p><strong>Dimensions:</strong> {selectedAccountData.mainImage.width}x{selectedAccountData.mainImage.height}</p>
-              </div>
-            </div>
+          {/* Base Image Preview - Affiché pour les deux modes */}
+          {selectedAccount && (
+            <ImagePreview
+              imageId={selectedAccountData?.mainImage?.id}
+              title={mode === 'profile' ? 'Image Principale du Compte' : 'Image de Base'}
+              isLoading={false}
+              imageData={selectedAccountData?.mainImage}
+            />
           )}
 
           {/* Generated Image Preview */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold mb-4">Image Générée</h3>
-            
-            {isLoading ? (
-              <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                  <p className="text-gray-600">Génération en cours...</p>
-                </div>
-              </div>
-            ) : generatedImage ? (
-              <div>
-                {/* Debug: Afficher la structure de l'image */}
-                <details className="mb-4">
-                  <summary className="text-xs text-gray-500 cursor-pointer">Debug - Structure de l'image</summary>
-                  <pre className="bg-gray-100 p-2 rounded text-xs overflow-auto max-h-32">
-                    {JSON.stringify(generatedImage, null, 2)}
-                  </pre>
-                </details>
-                
-                <div className="aspect-square rounded-lg overflow-hidden mb-4">
-                  <ImageDisplay
-                    photo={generatedImage}
-                    alt="Image générée"
-                    className="w-full h-full object-cover"
-                    width={512}
-                    height={512}
-                  />
-                </div>
-                
-                <div className="flex space-x-3">
-                  <button
-                    onClick={handleSavePhoto}
-                    className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
-                  >
-                    Sauvegarder
-                  </button>
-                  <button
-                    onClick={handleGenerate}
-                    disabled={!selectedAccount || !params.prompt}
-                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
-                  >
-                    Régénérer
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
-                <p className="text-gray-500">L'image générée apparaîtra ici</p>
+          <ImagePreview
+            imageId={generatedImage?.id}
+            title="Image Générée"
+            isLoading={isLoading}
+            imageData={generatedImage}
+            showDetails={false}
+          >
+            {generatedImage && (
+              <div className="flex space-x-3 mt-4">
+                <button
+                  onClick={handleSavePhoto}
+                  className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  Sauvegarder
+                </button>
+                <button
+                  onClick={handleGenerate}
+                  disabled={!selectedAccount || !params.prompt}
+                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  Régénérer
+                </button>
               </div>
             )}
-          </div>
+          </ImagePreview>
+
+          {isLoading && (
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Génération en cours...</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -53,6 +53,8 @@ export class StableDiffusionService {
         height?: number;
         steps?: number;
         denoising_strength?: number;
+        cfg_scale?: number;
+        sampler_index?: string;
         init_images: string[];
     }): Promise<StableDiffusionResponse> {
         const response = await fetch(`${this.baseUrl}/sdapi/v1/img2img`, {
@@ -68,8 +70,8 @@ export class StableDiffusionService {
                 steps: params.steps || 20,
                 denoising_strength: params.denoising_strength || 0.75,
                 init_images: params.init_images,
-                cfg_scale: 7,
-                sampler_index: "Euler a"
+                cfg_scale: params.cfg_scale || 7,
+                sampler_index: params.sampler_index || "Euler a"
             }),
             // Timeout de 5 minutes pour la génération
             signal: AbortSignal.timeout(300000)

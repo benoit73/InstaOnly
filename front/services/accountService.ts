@@ -102,28 +102,6 @@ export const accountService = {
     }
   },
 
-  // Récupérer un compte avec son image principale
-  async getAccountWithMainImage(id: number): Promise<Account & { mainImage?: Photo }> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/accounts/${id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-      }
-      
-      const result = await response.json();
-      return result.data || result;
-    } catch (error) {
-      console.error('Erreur lors de la récupération du compte:', error);
-      throw error;
-    }
-  },
-
   // Créer un nouveau compte
   async createAccount(accountData: CreateAccountRequest): Promise<Account> {
     try {
