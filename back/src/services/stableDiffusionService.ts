@@ -4,7 +4,7 @@ export class StableDiffusionService {
     private baseUrl: string;
 
     constructor() {
-        this.baseUrl = process.env.STABLE_DIFFUSION_API_URL || 'http://10.74.17.221:7860';
+        this.baseUrl = process.env.STABLE_DIFFUSION_API_URL || "http://37.71.78.131:7860";
     }
 
     async txt2img(params: {
