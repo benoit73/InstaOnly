@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { ImageController } from '../controllers/imageController';
+import { authenticateJWT } from '../middleware/index';
 import path from 'path';
 import fs from 'fs';
 
@@ -42,18 +43,18 @@ const serveImageFile = async (req: any, res: any) => {
   }
 };
 
-// Routes principales pour les images
-router.get('/images/:id/file', serveImageFile); 
-router.get('/images/:id', imageController.getImageById.bind(imageController));
-router.delete('/images/:id', imageController.deleteImage.bind(imageController));
-router.get('/images/account/:accountId', imageController.getImagesByAccount.bind(imageController));
-router.get('/images/users/:userId', imageController.getImages.bind(imageController));
+// Routes principales pour les images - TOUTES PROTÉGÉES
+router.get('/images/:id/file', authenticateJWT, serveImageFile); 
+router.get('/images/:id', authenticateJWT, imageController.getImageById.bind(imageController));
+router.delete('/images/:id', authenticateJWT, imageController.deleteImage.bind(imageController));
+router.get('/images/account/:accountId', authenticateJWT, imageController.getImagesByAccount.bind(imageController));
+router.get('/images/users/:userId', authenticateJWT, imageController.getImages.bind(imageController));
 
-// Routes de génération
-router.post('/images/generate', imageController.generateImg.bind(imageController));
+// Routes de génération - PROTÉGÉES
+router.post('/images/generate', authenticateJWT, imageController.generateImg.bind(imageController));
 
-// Routes pour la publication (à implémenter)
-router.post('/photos/:id/publish', imageController.publishPhoto.bind(imageController));
-router.post('/photos/:id/schedule', imageController.schedulePhoto.bind(imageController));
+// Routes pour la publication - PROTÉGÉES
+router.post('/photos/:id/publish', authenticateJWT, imageController.publishPhoto.bind(imageController));
+router.post('/photos/:id/schedule', authenticateJWT, imageController.schedulePhoto.bind(imageController));
 
 export default router;

@@ -6,21 +6,23 @@ interface UserAttributes {
   username: string;
   email: string;
   password: string;
+  googleId?: string; // AJOUT
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
+interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'createdAt' | 'updatedAt' | 'googleId'> {}
 
 class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   public id!: number;
   public username!: string;
   public email!: string;
   public password!: string;
+  public googleId?: string; // AJOUT
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
-  // Associations (déclarées mais pas définies ici)
+  // Associations
   public accounts?: any[];
   public userImages?: any[];
 }
@@ -46,6 +48,11 @@ User.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    googleId: { // AJOUT
+      type: DataTypes.STRING,
+      allowNull: true,
+      unique: true,
+    },
   },
   {
     sequelize,
@@ -54,7 +61,5 @@ User.init(
     timestamps: true,
   }
 );
-
-// NE PAS DÉFINIR LES ASSOCIATIONS ICI - elles sont dans associations.ts
 
 export default User;

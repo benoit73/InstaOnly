@@ -4,21 +4,20 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
+import passport from './config/passport';
 import sequelize from './config/database';
 import { User, Account, Image } from './models';
 import imageRoutes from './routes/imageRoutes';
 import userRoutes from './routes/userRoutes';
 import accountRoutes from './routes/accountRoutes';
+import authRoutes from './routes/authRoutes';
 
 // Charger les variables d'environnement
 dotenv.config();
 
 const app = express();
 app.set('trust proxy', 1);
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-  console.log(`✅ Server listening on port ${PORT}`);
-});
+const PORT = process.env.PORT || 3001;
 
 // Configuration CORS
 app.use(cors({
@@ -39,6 +38,9 @@ app.use(cors({
 
 // Middleware pour les requêtes OPTIONS (preflight)
 app.options('*', cors());
+
+// Initialiser Passport
+app.use(passport.initialize());
 
 // Middleware
 app.use(bodyParser.json({ limit: '50mb' }));
@@ -74,6 +76,7 @@ app.use((req, res, next) => {
 });
 
 // Routes
+app.use('/', authRoutes);
 app.use('/', imageRoutes);
 app.use('/', userRoutes);
 app.use('/', accountRoutes);
@@ -119,7 +122,7 @@ app.get('/test-db', async (req, res) => {
 // Initialiser la base de données et démarrer le serveur
 async function startServer() {
   try {
-    console.log(`Démarrage du BACK sur port ${process.env.PORT}...`);
+    console.log(`Démarrage du BACK sur port ${process.env.PORT || 3001}...`);
     await sequelize.authenticate();
     console.log('Database connection established successfully.');
     
@@ -131,6 +134,7 @@ async function startServer() {
       console.log(`Stable Diffusion API URL: ${process.env.STABLE_DIFFUSION_API_URL || 'http://localhost:7860'}`);
       console.log(`Health check available at: http://localhost:${PORT}/health`);
       console.log(`Uploads directory: ${path.join(__dirname, '../uploads')}`);
+      console.log(`OAuth Google callback: http://localhost:${PORT}/auth/google/callback`);
     });
     
   } catch (error) {
