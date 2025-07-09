@@ -1,13 +1,31 @@
-const API_BASE_URL = process.env.BACKEND_URL || 'http://localhost:5000/';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
+
+export interface Account {
+  id: number;
+  name: string;
+  description?: string;
+  mainImageId?: number;
+  mainImage?: {
+    id: number;
+    filename: string;
+    filePath: string;
+  };
+  createdAt: string;
+}
 
 export interface User {
   id: number;
   email: string;
-  name: string;
-  avatar?: string;
-  role: 'admin' | 'user';
+  username: string;
+  accounts?: Account[];
+  accountsCount?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface UserWithAccountsResponse {
+  success: boolean;
+  data: User;
 }
 
 export interface LoginRequest {
@@ -109,19 +127,50 @@ export const userService = {
     }
   },
 
-  // Récupérer le profil utilisateur
-  async getProfile(): Promise<User> {
-    const response = await fetch(`${API_BASE_URL}/users/profile`, {
+  // Récupérer l'utilisateur actuel avec ses comptes
+  async getUserByToken(): Promise<User> {
+    const token = this.getToken();
+    
+    if (!token) {
+      throw new Error('Token manquant');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/user/me`, {
+      method: 'GET',
       headers: {
-        'Authorization': `Bearer ${this.getToken()}`,
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
     });
 
     if (!response.ok) {
-      throw new Error('Erreur lors de la récupération du profil');
+      if (response.status === 401) {
+        // Token invalide, supprimer les tokens stockés
+        this.logout();
+        throw new Error('Session expirée');
+      }
+      throw new Error('Erreur lors de la récupération de l\'utilisateur');
     }
 
-    return response.json();
+    const data: UserWithAccountsResponse = await response.json();
+    return data.data;
+  },
+
+  // Alias pour getUserByToken (pour compatibilité)
+  async getProfile(): Promise<User> {
+    return this.getUserByToken();
+  },
+
+  // Récupérer uniquement les comptes de l'utilisateur
+  async getUserAccounts(): Promise<Account[]> {
+    const user = await this.getUserByToken();
+    return user.accounts || [];
+  },
+
+  // Vérifier si l'utilisateur a des comptes
+  async hasAccounts(): Promise<boolean> {
+    const user = await this.getUserByToken();
+    return (user.accountsCount || 0) > 0;
   },
 
   // Mettre à jour le profil utilisateur

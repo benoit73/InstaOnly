@@ -20,22 +20,9 @@ export const validateGenerateRequest = (req: Request, res: Response, next: NextF
     next();
 };
 
-// Middleware d'authentification JWT - VERSION TEST (LAISSE TOUT PASSER)
+// Middleware d'authentification JWT
 export const authenticateJWT = (req: Request, res: Response, next: NextFunction): void => {
-  console.log('🔓 TEST MODE: Authentication bypassed');
   
-  // Créer un utilisateur fictif pour les tests
-  (req as any).user = {
-    id: 1,
-    username: 'test_user',
-    email: 'test@example.com',
-    googleId: 'test_google_id'
-  };
-  
-  // Passer directement au middleware suivant
-  next();
-  
-  /* VERSION NORMALE (COMMENTÉE POUR LES TESTS)
   // Vérifier si le header Authorization existe
   const authHeader = req.headers.authorization;
   
@@ -82,7 +69,7 @@ export const authenticateJWT = (req: Request, res: Response, next: NextFunction)
     (req as any).user = user;
     next();
   })(req, res, next);
-  */
+
 };
 
 // Middleware d'authentification optionnelle

@@ -309,9 +309,7 @@ export const instagramService = {
 
   // Récupérer le token d'authentification
   getToken(): string | null {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('token');
-    }
-    return null;
+    return localStorage.getItem('token');
+
   },
 };

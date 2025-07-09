@@ -2,6 +2,59 @@ import { Request, Response } from 'express';
 import { User, Account } from '../models';
 
 export class UserController {
+
+async getUserByToken(req: Request, res: Response) {
+    try {
+      // Le middleware authenticateJWT ajoute l'utilisateur dans req.user
+      const userId = (req as any).user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ 
+          success: false,
+          error: 'Token invalide ou utilisateur non trouvé' 
+        });
+      }
+
+      const user = await User.findByPk(userId, {
+        attributes: ['id', 'username', 'email', 'createdAt', 'updatedAt'],
+        include: [
+          {
+            model: Account,
+            as: 'accounts',
+            attributes: ['id', 'name', 'description', 'mainImageId', 'createdAt'],
+          }
+        ]
+      });
+
+      if (!user) {
+        return res.status(404).json({ 
+          success: false,
+          error: 'Utilisateur non trouvé' 
+        });
+      }
+
+      res.json({
+        success: true,
+        data: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          accounts: user.accounts || [],
+          accountsCount: user.accounts?.length || 0,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt
+        }
+      });
+
+    } catch (error) {
+      console.error('Error fetching user by token:', error);
+      res.status(500).json({ 
+        success: false,
+        error: 'Erreur lors de la récupération de l\'utilisateur' 
+      });
+    }
+  }
+
   // Créer un utilisateur
   async createUser(req: Request, res: Response) {
     try {
