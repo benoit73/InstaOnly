@@ -193,33 +193,25 @@ export class ImageController {
     }
   }
 
-  // Restaurer une image supprimée
-  async restoreImage(req: Request, res: Response): Promise<void> {
+    // Marquer une image comme sauvegardée
+  async markAsSaved(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const result = await this.imageService.restoreImage(Number(id));
+      const result = await this.imageService.markAsSaved(Number(id));
       
       res.json({
         success: true,
-        message: 'Image restored successfully',
+        message: 'Image marked as saved successfully',
         data: result
       });
     } catch (error: any) {
-      console.error('Error restoring image:', error);
+      console.error('Error marking image as deleted:', error);
       res.status(500).json({
         success: false,
-        error: 'Failed to restore image',
+        error: 'Failed to mark image as deleted',
         message: error.message
       });
     }
-  }
-
-  // Créer des variantes (placeholder)
-  async createVariants(req: Request, res: Response): Promise<void> {
-    res.status(501).json({
-      success: false,
-      error: 'Variants creation not implemented yet'
-    });
   }
 
   // Publier une photo (placeholder)

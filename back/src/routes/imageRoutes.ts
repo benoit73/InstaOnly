@@ -49,6 +49,7 @@ router.get('/images/:id', authenticateJWT, imageController.getImageById.bind(ima
 router.delete('/images/:id', authenticateJWT, imageController.deleteImage.bind(imageController));
 router.get('/images/account/:accountId', authenticateJWT, imageController.getImagesByAccount.bind(imageController));
 router.get('/images/users/:userId', authenticateJWT, imageController.getImages.bind(imageController));
+router.get('/images/:id/saved', authenticateJWT, imageController.markAsSaved.bind(imageController));
 
 // Routes de génération - PROTÉGÉES
 router.post('/images/generate', authenticateJWT, imageController.generateImg.bind(imageController));

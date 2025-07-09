@@ -339,8 +339,8 @@ export class ImageService {
     }
   }
 
-  // Restaurer une image supprimée
-  async restoreImage(id: number): Promise<any> {
+    // Marquer une image comme sauvegardée (soft delete)
+  async markAsSaved(id: number): Promise<any> {
     try {
       const image = await Image.findByPk(id);
       if (!image) {
@@ -354,7 +354,7 @@ export class ImageService {
         filename: image.filename
       };
     } catch (error) {
-      throw new Error(`Failed to restore image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Failed to mark image as saved: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
