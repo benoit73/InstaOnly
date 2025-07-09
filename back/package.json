@@ -25,7 +25,7 @@
     "pg": "^8.16.3",
     "sequelize": "^6.35.0",
     "sqlite3": "^5.1.6",
-    "@google-cloud/storage": "^7.16.2"
+    "@google-cloud/storage": "*"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
