@@ -18,9 +18,11 @@ dotenv.config();
 const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-  console.log("✅ Server listening on port ${PORT}");
-});
+
+if (!PORT) {
+  console.error('❌ No PORT defined in environment!');
+  process.exit(1);
+}
 
 // Configuration CORS
 app.use(cors({
@@ -93,16 +95,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Gestion des erreurs
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('Error:', err);
-  res.status(500).json({
-    success: false,
-    error: 'Internal Server Error',
-    message: err.message
-  });
-});
-
 // ➜ Route de test DB pour vérifier la connexion à Cloud SQL
 app.get('/test-db', async (req, res) => {
   try {
@@ -117,23 +109,33 @@ app.get('/test-db', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la connexion à la base',
-      error: error instanceof Error ? error.message : String(error)
+      error: error.message
     });
   }
+});
+
+// Gestion des erreurs
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Error:', err);
+  res.status(500).json({
+    success: false,
+    error: 'Internal Server Error',
+    message: err.message
+  });
 });
 
 // Initialiser la base de données et démarrer le serveur
 async function startServer() {
   try {
-    console.log(`Démarrage du BACK sur port ${process.env.PORT || 3001}...`);
+    console.log(`🚀 Démarrage du BACK sur port ${PORT}...`);
     await sequelize.authenticate();
-    console.log('Database connection established successfully.');
+    console.log('✅ Database connection established successfully.');
     
     await sequelize.sync({ force: false });
-    console.log('Database synchronized successfully.');
+    console.log('✅ Database synchronized successfully.');
         
     app.listen(PORT, () => {
-      console.log(`Server is running on http://localhost:${PORT}`);
+      console.log(`✅ Server listening on port ${PORT}`);
       console.log(`Stable Diffusion API URL: ${process.env.STABLE_DIFFUSION_API_URL || 'http://localhost:7860'}`);
       console.log(`Health check available at: http://localhost:${PORT}/health`);
       console.log(`Uploads directory: ${path.join(__dirname, '../uploads')}`);
@@ -141,7 +143,7 @@ async function startServer() {
     });
     
   } catch (error) {
-    console.error('Unable to start server:', error);
+    console.error('❌ Unable to start server:', error);
     process.exit(1);
   }
 }
