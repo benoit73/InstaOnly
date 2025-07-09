@@ -2,7 +2,7 @@ import { Sequelize } from 'sequelize';
 
 const sequelize = new Sequelize({
   dialect: 'postgres',
-  host: process.env.DB_HOST || '34.155.28.172',
+  host: process.env.DB_HOST || '/cloudsql/notional-cirrus-465211-g3:europe-west9:bdd-instaonly-manager',
   port: parseInt(process.env.DB_PORT || '5432'),
   username: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || 'root',
