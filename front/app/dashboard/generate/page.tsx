@@ -190,8 +190,8 @@ export default function GeneratePage() {
         await accountService.setMainImage(selectedAccount, generatedImage.id);
         alert('Image sauvegardée et définie comme image principale avec succès !');
       } else {
-        // Mode "Photo à partir d'un Profil" : marquer comme supprimée (isDeleted = true)
-        await imageService.markAsDeleted(generatedImage.id);
+        // Mode "Photo à partir d'un Profil" : marquer comme sauvegardée
+        await imageService.markAsSaved(generatedImage.id);
         alert('Photo sauvegardée avec succès !');
       }
       

@@ -65,7 +65,7 @@ export interface GenerateRequest {
 class ImageService {
   // Génère l'URL pour accéder à un fichier d'image par ID
   getImageFileUrl(imageId: number): string {
-    return `${API_BASE_URL}/photos/${imageId}/file`;
+    return `${API_BASE_URL}/images/${imageId}/file`;
   }
 
   // Récupérer toutes les photos
@@ -165,7 +165,7 @@ class ImageService {
   // Générer une image à partir de l'image de base
   async generateImageFromBase(generateData: GenerateRequest & { baseImageId: number }): Promise<Photo> {
     try {
-      const response = await fetch(`${API_BASE_URL}/photos/generate/img2img`, {
+      const response = await fetch(`${API_BASE_URL}/images/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -183,11 +183,6 @@ class ImageService {
       console.error('Erreur lors de la génération de l\'image à partir du profil:', error);
       throw error;
     }
-  }
-
-  // Générer une photo avec IA (alias pour generateBaseImage)
-  async generatePhoto(generateData: GenerateRequest): Promise<Photo> {
-    return this.generateBaseImage(generateData);
   }
 
   // Mettre à jour une photo
@@ -314,9 +309,9 @@ class ImageService {
     return `${API_BASE_URL}/files/${photo.filePath.replace('uploads/', '')}`;
   }
 
-  // Marquer une photo comme supprimée (soft delete)
-  async markAsDeleted(photoId: number): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/photos/${photoId}/mark-deleted`, {
+  // Marquer une photo comme sauvegardée
+  async markAsSaved(photoId: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/photos/${photoId}/mark-saved`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -324,7 +319,7 @@ class ImageService {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to mark photo as deleted');
+      throw new Error('Failed to mark photo as saved');
     }
   }
 

@@ -35,9 +35,9 @@ export class StableDiffusionService {
             requestBody.denoising_strength = params.denoising_strength || 0.75;
         }
 
-        const endpoint = params.init_images ? '/sdapi/v1/img2img' : '/sdapi/v1/txt2img';
+        console.log(JSON.stringify(requestBody));
 
-        const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        const response = await fetch(`${this.baseUrl}/sdapi/v1/txt2img`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
