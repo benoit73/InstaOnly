@@ -15,3 +15,13 @@ export interface StableDiffusionResponse {
     parameters: any;
     info: string;
 }
+
+// Re-export des types utilisateur pour faciliter l'import
+export { UserAttributes, AuthenticatedUser, AuthenticatedRequest } from './user';
+
+// Override du module passport pour éviter les conflits de types
+declare module 'passport' {
+    interface AuthenticateOptions {
+        session?: boolean;
+    }
+}

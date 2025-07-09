@@ -1,15 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../config/database';
-
-interface UserAttributes {
-  id: number;
-  username: string;
-  email: string;
-  password: string;
-  googleId?: string; // AJOUT
-  createdAt?: Date;
-  updatedAt?: Date;
-}
+import { UserAttributes } from '../types/user';
 
 interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'createdAt' | 'updatedAt' | 'googleId'> {}
 
@@ -18,7 +9,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public username!: string;
   public email!: string;
   public password!: string;
-  public googleId?: string; // AJOUT
+  public googleId?: string;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
@@ -48,7 +39,7 @@ User.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    googleId: { // AJOUT
+    googleId: {
       type: DataTypes.STRING,
       allowNull: true,
       unique: true,

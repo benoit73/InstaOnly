@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { request } from 'http';
 import passport from 'passport';
 
 // Middleware for logging requests
@@ -22,7 +23,8 @@ export const validateGenerateRequest = (req: Request, res: Response, next: NextF
 
 // Middleware d'authentification JWT
 export const authenticateJWT = (req: Request, res: Response, next: NextFunction): void => {
-  
+  console.log('req');
+  console.log(req);
   // Vérifier si le header Authorization existe
   const authHeader = req.headers.authorization;
   

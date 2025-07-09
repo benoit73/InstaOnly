@@ -2,7 +2,8 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
 import jwt from 'jsonwebtoken';
-import { User } from '../models';
+import User from '../models/User';
+import { UserAttributes } from '../types/user';
 
 // Configuration JWT Strategy
 const jwtOptions = {
@@ -53,7 +54,7 @@ passport.use(new GoogleStrategy({
 }));
 
 // Fonction utilitaire pour générer un JWT - VERSION SIMPLIFIÉE
-export const generateJWT = (user: any) => {
+export const generateJWT = (user: UserAttributes) => {
   try {
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {

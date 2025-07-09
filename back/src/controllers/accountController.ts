@@ -1,42 +1,45 @@
 import { Request, Response } from 'express';
-import { Account, User, Image } from '../models';
+import { AccountService } from '../services/accountService';
+import { AuthenticatedUser } from '../types';
 
 export class AccountController {
+  private accountService: AccountService;
+
+  constructor() {
+    this.accountService = new AccountService();
+  }
+
   // Créer un compte
   async createAccount(req: Request, res: Response) {
     try {
-      const { name, description, userId } = req.body;
+      const { name, description } = req.body;
+      const user: AuthenticatedUser | undefined = req.user;
 
-      if (!name || !userId) {
-        return res.status(400).json({ error: 'Name and userId are required' });
+      if (!name) {
+        return res.status(400).json({ error: 'Name is required' });
       }
 
-      // Vérifier que l'utilisateur existe
-      const user = await User.findByPk(userId);
       if (!user) {
-        return res.status(404).json({ error: 'User not found' });
+        return res.status(401).json({ error: 'User authentication required' });
       }
 
-      const account = await Account.create({
+      const account = await this.accountService.createAccount({
         name,
         description,
-        userId,
+        userId: user.id
       });
 
       res.status(201).json({
         success: true,
         message: 'Account created successfully',
-        data: {
-          id: account.id,
-          name: account.name,
-          description: account.description,
-          userId: account.userId,
-          createdAt: account.createdAt,
-        }
+        data: account
       });
 
     } catch (error) {
       console.error('Error creating account:', error);
+      if (error instanceof Error && error.message === 'User not found') {
+        return res.status(404).json({ error: error.message });
+      }
       res.status(500).json({ error: 'Failed to create account' });
     }
   }
@@ -44,48 +47,17 @@ export class AccountController {
   // Lister tous les comptes
   async getAccounts(req: Request, res: Response) {
     try {
+      const user: AuthenticatedUser | undefined = req.user;
       const { userId } = req.query;
-
-      const whereClause: any = {};
-      if (userId) {
-        whereClause.userId = userId;
-      }
-
-      const accounts = await Account.findAll({
-        where: whereClause,
-        include: [
-          {
-            model: User,
-            as: 'user',
-            attributes: ['id', 'username', 'email']
-          },
-          {
-            model: Image,
-            as: 'mainImage',
-            attributes: ['id', 'filename', 'filePath', 'prompt']
-          },
-          {
-            model: Image,
-            as: 'images',
-            attributes: ['id', 'filename']
-          }
-        ],
-        order: [['createdAt', 'DESC']]
-      });
+      
+      // Si un userId est fourni en query, on l'utilise, sinon on utilise l'utilisateur connecté
+      const targetUserId = userId ? Number(userId) : user?.id;
+      
+      const accounts = await this.accountService.getAccounts(targetUserId);
 
       res.json({
         success: true,
-        data: accounts.map((account: any) => ({
-          id: account.id,
-          name: account.name,
-          description: account.description,
-          userId: account.userId,
-          user: account.user,
-          mainImage: account.mainImage,
-          imagesCount: account.images?.length || 0,
-          createdAt: account.createdAt,
-          updatedAt: account.updatedAt
-        }))
+        data: accounts
       });
 
     } catch (error) {
@@ -94,74 +66,86 @@ export class AccountController {
     }
   }
 
-    // Récupérer un compte par ID avec son image principale
-    async getAccountById(req: Request, res: Response): Promise<void> {
+  // Récupérer un compte par ID avec son image principale
+  async getAccountById(req: Request, res: Response): Promise<void> {
     try {
-        const { id } = req.params;
-        
-        const account = await Account.findByPk(id, {
-        include: [
-            {
-            model: User,
-            as: 'user',
-            attributes: ['id', 'username', 'email']
-            },
-            {
-            model: Image,
-            as: 'mainImage',
-            attributes: ['id', 'filename', 'filePath', 'prompt', 'width', 'height']
-            }
-        ]
-        });
-
-        if (!account) {
-        res.status(404).json({
-            success: false,
-            error: 'Account not found'
+      const { id } = req.params;
+      const user: AuthenticatedUser | undefined = req.user;
+      
+      if (!user) {
+        res.status(401).json({
+          success: false,
+          error: 'User authentication required'
         });
         return;
-        }
+      }
 
-        res.json({
+      const account = await this.accountService.getAccountById(id);
+
+      // Vérifier que l'utilisateur a accès à ce compte
+      if (account.userId !== user.id) {
+        res.status(403).json({
+          success: false,
+          error: 'Access denied to this account'
+        });
+        return;
+      }
+
+      res.json({
         success: true,
         data: account
-        });
+      });
+
     } catch (error) {
-        console.error('Error fetching account:', error);
-        res.status(500).json({
+      console.error('Error fetching account:', error);
+      if (error instanceof Error && error.message === 'Account not found') {
+        res.status(404).json({
+          success: false,
+          error: error.message
+        });
+        return;
+      }
+      res.status(500).json({
         success: false,
         error: 'Failed to fetch account',
         message: error instanceof Error ? error.message : 'Unknown error'
-        });
+      });
     }
-    }
+  }
 
   // Mettre à jour un compte
   async updateAccount(req: Request, res: Response) {
     try {
       const { id } = req.params;
       const { name, description } = req.body;
+      const user: AuthenticatedUser | undefined = req.user;
 
-      const account = await Account.findByPk(id);
-      if (!account) {
-        return res.status(404).json({ error: 'Account not found' });
+      if (!user) {
+        return res.status(401).json({ error: 'User authentication required' });
       }
 
-      await account.update({ name, description });
+      // Vérifier que l'utilisateur possède ce compte
+      const existingAccount = await this.accountService.getAccountById(id);
+      if (existingAccount.userId !== user.id) {
+        return res.status(403).json({ error: 'Access denied to this account' });
+      }
+
+      const account = await this.accountService.updateAccount(id, {
+        name,
+        description
+      });
 
       res.json({
         success: true,
         message: 'Account updated successfully',
-        data: {
-          id: account.id,
-          name: account.name,
-          description: account.description,
-          updatedAt: account.updatedAt
-        }
+        data: account
       });
 
     } catch (error) {
       console.error('Error updating account:', error);
+      if (error instanceof Error && error.message === 'Account not found') {
+        return res.status(404).json({ error: error.message });
+      }
       res.status(500).json({ error: 'Failed to update account' });
     }
   }
@@ -170,16 +154,19 @@ export class AccountController {
   async deleteAccount(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      const user: AuthenticatedUser | undefined = req.user;
 
-      const account = await Account.findByPk(id);
-      if (!account) {
-        return res.status(404).json({ error: 'Account not found' });
+      if (!user) {
+        return res.status(401).json({ error: 'User authentication required' });
       }
 
-      // Supprimer toutes les images associées
-      await Image.destroy({ where: { accountId: id } });
-      
-      await account.destroy();
+      // Vérifier que l'utilisateur possède ce compte
+      const existingAccount = await this.accountService.getAccountById(id);
+      if (existingAccount.userId !== user.id) {
+        return res.status(403).json({ error: 'Access denied to this account' });
+      }
+
+      await this.accountService.deleteAccount(id);
 
       res.json({
         success: true,
@@ -188,6 +175,9 @@ export class AccountController {
 
     } catch (error) {
       console.error('Error deleting account:', error);
+      if (error instanceof Error && error.message === 'Account not found') {
+        return res.status(404).json({ error: error.message });
+      }
       res.status(500).json({ error: 'Failed to delete account' });
     }
   }
@@ -197,37 +187,41 @@ export class AccountController {
     try {
       const { id } = req.params;
       const { imageId } = req.body;
+      const user: AuthenticatedUser | undefined = req.user;
+
+      if (!user) {
+        return res.status(401).json({ error: 'User authentication required' });
+      }
 
       if (!imageId) {
         return res.status(400).json({ error: 'imageId is required' });
       }
 
-      const account = await Account.findByPk(id);
-      if (!account) {
-        return res.status(404).json({ error: 'Account not found' });
+      // Vérifier que l'utilisateur possède ce compte
+      const existingAccount = await this.accountService.getAccountById(id);
+      if (existingAccount.userId !== user.id) {
+        return res.status(403).json({ error: 'Access denied to this account' });
       }
 
-      // Vérifier que l'image existe et appartient au compte
-      const image = await Image.findOne({
-        where: { id: imageId, accountId: id }
-      });
-      if (!image) {
-        return res.status(404).json({ error: 'Image not found for this account' });
-      }
-
-      await account.update({ mainImageId: imageId });
+      // Convertir les string en number
+      const result = await this.accountService.setMainImage(Number(id), Number(imageId));
 
       res.json({
         success: true,
         message: 'Main image set successfully',
-        data: {
-          accountId: account.id,
-          mainImageId: imageId
-        }
+        data: result
       });
 
     } catch (error) {
       console.error('Error setting main image:', error);
+      if (error instanceof Error) {
+        if (error.message === 'Account not found') {
+          return res.status(404).json({ error: error.message });
+        }
+        if (error.message === 'Image not found for this account') {
+          return res.status(404).json({ error: error.message });
+        }
+      }
       res.status(500).json({ error: 'Failed to set main image' });
     }
   }

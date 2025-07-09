@@ -1,3 +1,5 @@
+import { getAuthHeaders } from '../helper/authHelper';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACK_URL || 'https://back-instaonly-849033623078.europe-west1.run.app';
 export interface Account {
   id: number;
@@ -55,9 +57,7 @@ export const accountService = {
       console.log('Fetching accounts from:', `${API_BASE_URL}/accounts`);
       const response = await fetch(`${API_BASE_URL}/accounts`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
       });
       
       if (!response.ok) {
@@ -83,9 +83,7 @@ export const accountService = {
     try {
       const response = await fetch(`${API_BASE_URL}/accounts/${id}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
       });
       
       if (!response.ok) {
@@ -106,9 +104,7 @@ export const accountService = {
     try {
       const response = await fetch(`${API_BASE_URL}/accounts`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(accountData),
       });
       
@@ -130,9 +126,7 @@ export const accountService = {
     try {
       const response = await fetch(`${API_BASE_URL}/accounts/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(updateData),
       });
       
@@ -154,9 +148,7 @@ export const accountService = {
     try {
       const response = await fetch(`${API_BASE_URL}/accounts/${id}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
       });
       
       if (!response.ok) {
@@ -174,9 +166,7 @@ export const accountService = {
     try {
       const response = await fetch(`${API_BASE_URL}/accounts/${accountId}/main-image`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ imageId }),
       });
       
