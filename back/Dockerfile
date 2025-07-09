@@ -16,7 +16,7 @@ WORKDIR /app/repo/back
 RUN npm install
 
 # Expose le port attendu
-EXPOSE 3001
+EXPOSE 8080
 
 # Commande de lancement
 CMD [ "npm", "run", "dev" ]
