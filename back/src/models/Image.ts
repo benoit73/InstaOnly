@@ -7,6 +7,7 @@ interface ImageAttributes {
   filePath: string;
   prompt: string;
   negativePrompt?: string;
+  description?: string; // NOUVEAU CHAMP
   width: number;
   height: number;
   steps: number;
@@ -26,6 +27,7 @@ class Image extends Model<ImageAttributes, ImageCreationAttributes> implements I
   public filePath!: string;
   public prompt!: string;
   public negativePrompt?: string;
+  public description?: string;
   public width!: number;
   public height!: number;
   public steps!: number;
@@ -61,6 +63,10 @@ Image.init(
       allowNull: false,
     },
     negativePrompt: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    description: {
       type: DataTypes.TEXT,
       allowNull: true,
     },

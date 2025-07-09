@@ -11,6 +11,7 @@ import imageRoutes from './routes/imageRoutes';
 import userRoutes from './routes/userRoutes';
 import accountRoutes from './routes/accountRoutes';
 import authRoutes from './routes/authRoutes';
+import descriptionRoutes from './routes/descriptionRoute';
 
 // Charger les variables d'environnement avec priorité explicite
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
@@ -89,6 +90,7 @@ app.use('/', authRoutes);
 app.use('/', imageRoutes);
 app.use('/', userRoutes);
 app.use('/', accountRoutes);
+app.use('/', descriptionRoutes);
 
 // Route de test
 app.get('/health', (req, res) => {

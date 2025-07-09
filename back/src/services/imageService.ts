@@ -26,6 +26,7 @@ export interface ImageUpdateData {
   height?: number;
   steps?: number;
   isDeleted?: boolean;
+  description?: string;
 }
 
 export interface GenerateImageData {
