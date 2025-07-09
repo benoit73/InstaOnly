@@ -97,6 +97,25 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
+// ➜ Route de test DB pour vérifier la connexion à Cloud SQL
+app.get('/test-db', async (req, res) => {
+  try {
+    const accounts = await Account.findAll({ limit: 5 });
+    res.json({
+      success: true,
+      message: 'Connexion à la base réussie !',
+      data: accounts
+    });
+  } catch (error) {
+    console.error('Erreur dans /test-db:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la connexion à la base',
+      error: error.message
+    });
+  }
+});
+
 // Initialiser la base de données et démarrer le serveur
 async function startServer() {
   try {
