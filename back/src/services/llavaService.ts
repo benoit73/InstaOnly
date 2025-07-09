@@ -14,7 +14,7 @@ export class LlavaService {
     try {
       const {
         image,
-        prompt = "Create a short and engaging Instagram post description based on this photo. Keep it generic and appealing to a wide audience"
+        prompt = "Create a short and engaging Instagram post description in french based on this photo. Keep it generic and appealing to a wide audience."
       } = params;
 
       if (!image) {
@@ -24,7 +24,7 @@ export class LlavaService {
       console.log(`Starting LLaVA description generation with prompt: "${prompt}"`);
 
       const requestBody = {
-        model: "llava-v1.6-mistral-7b",
+        model: "llava",
         messages: [
           {
             role: "user",
