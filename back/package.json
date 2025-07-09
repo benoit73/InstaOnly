@@ -24,7 +24,8 @@
     "passport-jwt": "^4.0.1",
     "pg": "^8.16.3",
     "sequelize": "^6.35.0",
-    "sqlite3": "^5.1.6"
+    "sqlite3": "^5.1.6",
+    "@google-cloud/storage": "^7.16.2"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
