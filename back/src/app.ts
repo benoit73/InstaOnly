@@ -23,7 +23,11 @@ app.use(cors({
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'http://localhost:3001',
-    'http://127.0.0.1:3001'
+    'http://127.0.0.1:3001',
+    'https://front-instaonly-849033623078.europe-west9.run.app',
+    'https://front-instaonly-849033623078.europe-west9.run.app:443',
+    'https://front-instaonly-849033623078.europe-west9.run.app:80',
+    'https://front-instaonly-849033623078.europe-west9.run.app:8080',
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
