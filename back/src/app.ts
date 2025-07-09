@@ -12,8 +12,12 @@ import userRoutes from './routes/userRoutes';
 import accountRoutes from './routes/accountRoutes';
 import authRoutes from './routes/authRoutes';
 
-// Charger les variables d'environnement
-dotenv.config();
+// Charger les variables d'environnement avec priorité explicite
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ 
+  path: path.resolve(process.cwd(), '.env.local'),
+  override: true // Force l'écrasement des variables existantes
+});
 
 const app = express();
 app.set('trust proxy', 1);
