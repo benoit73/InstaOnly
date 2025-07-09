@@ -19,7 +19,7 @@ const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-  console.log(✅ Server listening on port ${PORT});
+  console.log("✅ Server listening on port ${PORT}");
 });
 
 // Configuration CORS
@@ -117,7 +117,7 @@ app.get('/test-db', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la connexion à la base',
-      error: error.message
+      error: error instanceof Error ? error.message : String(error)
     });
   }
 });
