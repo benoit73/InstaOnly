@@ -43,6 +43,7 @@ export interface GenerateImageData {
   isStory?: boolean;
   type?: string;
   init_images_id?: number;
+  seed?: number;
 }
 
 export class ImageService {
@@ -65,6 +66,7 @@ export class ImageService {
         accountId,
         type = '',
         init_images_id,
+        seed,
       } = data;
 
       if (!prompt) {
@@ -75,32 +77,33 @@ export class ImageService {
         throw new Error('accountId is required');
       }
 
-      // Vérifier que le compte existe et récupérer l'image principale avec la seed
-      const account = await Account.findOne({
-        where: { id: accountId },
-        include: [
-          {
-            model: Image,
-            as: 'mainImage',
-            attributes: ['id', 'filename', 'filePath', 'seed', 'prompt', 'width', 'height']
-          }
-        ]
-      });
-
-      if (!account) {
-        throw new Error('Account not found');
-      }
-
-      if (!account.mainImage) {
-        throw new Error('No main image found for this account. Please generate a main image first.');
-      }
-
       console.log(`Starting image generation with prompt: "${prompt}"`);
-      console.log(`Using base image seed: ${account.mainImage.seed}`);
 
       let result: any;
 
       if (type === "img2img") {
+        // Vérifier que le compte existe et récupérer l'image principale avec la seed
+        const account = await Account.findOne({
+          where: { id: accountId },
+          include: [
+            {
+              model: Image,
+              as: 'mainImage',
+              attributes: ['id', 'filename', 'filePath', 'seed', 'prompt', 'width', 'height']
+            }
+          ]
+        });
+
+        if (!account) {
+          throw new Error('Account not found');
+        }
+
+        console.log(`Using base image seed: ${account.mainImage?.seed}`);
+
+        if (!account.mainImage) {
+          throw new Error('No main image found for this account. Please generate a main image first.');
+        }
+
         // Récupérer l'image pour img2img
         let imageForImg2Img: any;
         
@@ -145,7 +148,6 @@ export class ImageService {
         console.log('Generated with seed:', generatedSeed);
       } catch (error) {
         console.warn('Could not extract seed from response:', error);
-        generatedSeed = account.mainImage.seed; // Fallback sur la seed d'origine
       }
 
       // Sauvegarder l'image générée
@@ -166,7 +168,7 @@ export class ImageService {
         width,
         height,
         steps,
-        seed: generatedSeed, // Seed utilisée pour la génération
+        seed: generatedSeed, // Maintenant supporté en BIGINT
         userId: 1, // userId par défaut
         accountId: accountId,
         isDeleted: false
@@ -174,8 +176,6 @@ export class ImageService {
 
       return {
         ...this.formatImageResponse(image),
-        baseImageSeed: account.mainImage.seed,
-        baseImageId: account.mainImage.id,
         stableDiffusionInfo: {
           parameters: result.parameters,
           info: result.info

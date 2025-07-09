@@ -7,18 +7,18 @@ interface ImageAttributes {
   filePath: string;
   prompt: string;
   negativePrompt?: string;
-  width?: number;
-  height?: number;
-  steps?: number;
-  seed?: number;
+  width: number;
+  height: number;
+  steps: number;
+  seed?: number; // Sera stocké comme BIGINT
   userId: number;
-  accountId?: number;
-  isDeleted?: boolean; // NOUVEAU CHAMP
+  accountId: number;
+  isDeleted: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-interface ImageCreationAttributes extends Optional<ImageAttributes, 'id' | 'createdAt' | 'updatedAt' | 'negativePrompt' | 'width' | 'height' | 'steps' | 'seed' | 'accountId' | 'isDeleted'> {}
+interface ImageCreationAttributes extends Optional<ImageAttributes, 'id' | 'createdAt' | 'updatedAt' | 'negativePrompt' | 'seed' | 'isDeleted'> {}
 
 class Image extends Model<ImageAttributes, ImageCreationAttributes> implements ImageAttributes {
   public id!: number;
@@ -26,13 +26,13 @@ class Image extends Model<ImageAttributes, ImageCreationAttributes> implements I
   public filePath!: string;
   public prompt!: string;
   public negativePrompt?: string;
-  public width?: number;
-  public height?: number;
-  public steps?: number;
-  public seed?: number;
+  public width!: number;
+  public height!: number;
+  public steps!: number;
+  public seed?: number; // Sera stocké comme BIGINT
   public userId!: number;
-  public accountId?: number;
-  public isDeleted?: boolean;
+  public accountId!: number;
+  public isDeleted!: boolean;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
@@ -66,37 +66,39 @@ Image.init(
     },
     width: {
       type: DataTypes.INTEGER,
-      allowNull: true,
+      allowNull: false,
+      defaultValue: 512,
     },
     height: {
       type: DataTypes.INTEGER,
-      allowNull: true,
+      allowNull: false,
+      defaultValue: 512,
     },
     steps: {
       type: DataTypes.INTEGER,
-      allowNull: true,
+      allowNull: false,
+      defaultValue: 20,
     },
     seed: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.BIGINT, // CHANGÉ de INTEGER à BIGINT
       allowNull: true,
     },
-        userId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: 'users', // ✅ nom réel de la table, en minuscule
-            key: 'id',
-        },
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'users',
+        key: 'id',
+      },
     },
     accountId: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-        model: 'accounts', // ✅ pareil ici
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'accounts',
         key: 'id',
+      },
     },
-    },
-
     isDeleted: {
       type: DataTypes.BOOLEAN,
       allowNull: false,

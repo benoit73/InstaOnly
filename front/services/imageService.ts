@@ -142,7 +142,7 @@ class ImageService {
   // Générer une image de base avec IA (txt2img)
   async generateBaseImage(generateData: GenerateRequest): Promise<Photo> {
     try {
-      const response = await fetch(`${API_BASE_URL}/photos/generate/txt2txt`, {
+      const response = await fetch(`${API_BASE_URL}/images/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

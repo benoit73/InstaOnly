@@ -9,7 +9,7 @@ export class ImageController {
     this.imageService = new ImageService();
   }
 
-  // Générer une image normale
+  // Générer une image
   async generateImg(req: Request, res: Response): Promise<void> {
     console.log('generateImg starting..');
     try {
