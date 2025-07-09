@@ -272,37 +272,6 @@ class ImageService {
     }
   }
 
-  // Obtenir l'URL complète d'une image
-  getImageUrl(photo: Photo | any): string {
-    console.log("getImageUrl - photo:", photo); // Debug
-    
-    // Si c'est une image générée avec imageUrl
-    if (photo.imageUrl) {
-      // Si l'URL commence par /, construire l'URL complète
-      if (photo.imageUrl.startsWith('/')) {
-        // Gardez le baseURL avec / et ajoutez l'imageUrl
-        const baseUrl = process.env.NEXT_PUBLIC_BACK_URL?.replace('/', '') || 'http://localhost:3001';
-        return `${baseUrl}${photo.imageUrl}`;
-      }
-      return photo.imageUrl;
-    }
-    
-    // Si c'est une image avec un filePath direct
-    if (photo.filePath && !photo.id) {
-      // Utiliser l'API pour servir le fichier
-      return `${API_BASE_URL}/files/${photo.filePath.replace('uploads/', '')}`;
-    }
-    
-    // Structure normale avec ID
-    if (photo.id) {
-      return `${API_BASE_URL}/images/${photo.id}/file`;
-    }
-    
-    // Fallback
-    console.warn("Aucune URL d'image trouvée pour:", photo);
-    return '';
-  }
-
   // Alternative : obtenir l'URL via le chemin direct
   getImageDirectUrl(photo: Photo): string {
     // Servir via les fichiers statiques (garde / et utilise /uploads)
@@ -311,7 +280,7 @@ class ImageService {
 
   // Marquer une photo comme sauvegardée
   async markAsSaved(photoId: number): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/photos/${photoId}/mark-saved`, {
+    const response = await fetch(`${API_BASE_URL}/images/${photoId}/mark-saved`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -320,20 +289,6 @@ class ImageService {
 
     if (!response.ok) {
       throw new Error('Failed to mark photo as saved');
-    }
-  }
-
-  // Restaurer une photo supprimée
-  async restorePhoto(photoId: number): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/photos/${photoId}/restore`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to restore photo');
     }
   }
 
