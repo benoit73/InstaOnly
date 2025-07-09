@@ -1,4 +1,13 @@
 import { Sequelize } from 'sequelize';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Charger les variables d'environnement avec priorité explicite
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ 
+  path: path.resolve(process.cwd(), '.env.local'),
+  override: true // Force l'écrasement des variables existantes
+});
 
 const sequelize = new Sequelize({
   dialect: 'postgres',
