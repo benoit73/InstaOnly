@@ -27,7 +27,7 @@ passport.use(new JwtStrategy(jwtOptions, async (payload, done) => {
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID || '1066618886719-bvibu0drgviaemgmbt3m9bsr9aoq3ac2.apps.googleusercontent.com',
   clientSecret: process.env.GOOGLE_CLIENT_SECRET || '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',
-  callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3001/auth/google/callback'
+  callbackURL: process.env.GOOGLE_CALLBACK_URL || 'https://back-instaonly-849033623078.europe-west1.run.app/auth/google/callback'
 }, async (accessToken, refreshToken, profile, done) => {
   try {
     // Vérifier si l'utilisateur existe déjà
