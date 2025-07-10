@@ -55,17 +55,6 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // Route pour servir les images directement par nom de fichier (optionnel)
 app.use('/files', express.static(path.join(__dirname, '../uploads')));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard.',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-app.use(limiter);
-
 // Augmenter le timeout pour les requêtes longues
 app.use((req, res, next) => {
   res.setTimeout(360000, () => {
