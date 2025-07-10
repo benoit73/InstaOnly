@@ -44,7 +44,7 @@ const serveImageFile = async (req: any, res: any) => {
 };
 
 // Routes principales pour les images - TOUTES PROTÉGÉES
-router.get('/images/:id/file', authenticateJWT, serveImageFile); 
+router.get('/images/:id/file', serveImageFile); 
 router.get('/images/:id', authenticateJWT, imageController.getImageById.bind(imageController));
 router.delete('/images/:id', authenticateJWT, imageController.deleteImage.bind(imageController));
 router.get('/images/account/:accountId', authenticateJWT, imageController.getImagesByAccount.bind(imageController));

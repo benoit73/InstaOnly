@@ -13,7 +13,7 @@ export class AccountController {
   async createAccount(req: Request, res: Response) {
     try {
       const { name, description } = req.body;
-      const user: AuthenticatedUser | undefined = req.user;
+      const user = req.user as AuthenticatedUser | undefined;
 
       if (!name) {
         return res.status(400).json({ error: 'Name is required' });
@@ -47,13 +47,9 @@ export class AccountController {
   // Lister tous les comptes
   async getAccounts(req: Request, res: Response) {
     try {
-      const user: AuthenticatedUser | undefined = req.user;
-      const { userId } = req.query;
+      const user = req.user as AuthenticatedUser;
       
-      // Si un userId est fourni en query, on l'utilise, sinon on utilise l'utilisateur connecté
-      const targetUserId = userId ? Number(userId) : user?.id;
-      
-      const accounts = await this.accountService.getAccounts(targetUserId);
+      const accounts = await this.accountService.getAccounts(user.id);
 
       res.json({
         success: true,
@@ -70,7 +66,7 @@ export class AccountController {
   async getAccountById(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const user: AuthenticatedUser | undefined = req.user;
+      const user = req.user as AuthenticatedUser | undefined;
       
       if (!user) {
         res.status(401).json({
@@ -118,7 +114,7 @@ export class AccountController {
     try {
       const { id } = req.params;
       const { name, description } = req.body;
-      const user: AuthenticatedUser | undefined = req.user;
+      const user = req.user as AuthenticatedUser | undefined;
 
       if (!user) {
         return res.status(401).json({ error: 'User authentication required' });
@@ -154,7 +150,7 @@ export class AccountController {
   async deleteAccount(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const user: AuthenticatedUser | undefined = req.user;
+      const user = req.user as AuthenticatedUser | undefined;
 
       if (!user) {
         return res.status(401).json({ error: 'User authentication required' });
@@ -187,7 +183,7 @@ export class AccountController {
     try {
       const { id } = req.params;
       const { imageId } = req.body;
-      const user: AuthenticatedUser | undefined = req.user;
+      const user = req.user as AuthenticatedUser | undefined;
 
       if (!user) {
         return res.status(401).json({ error: 'User authentication required' });
