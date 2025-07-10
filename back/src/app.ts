@@ -13,7 +13,7 @@ import accountRoutes from './routes/accountRoutes';
 import authRoutes from './routes/authRoutes';
 import descriptionRoutes from './routes/descriptionRoute';
 
-// Charger les variables d'environnement avec priorité explicite
+// Charger les variables d'environnement avec priorité explicitedd
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 dotenv.config({ 
   path: path.resolve(process.cwd(), '.env.local'),
