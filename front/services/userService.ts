@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.BACKEND_URL || 'http://localhost:8080';
+const API_BASE_URL = process.env.BACKEND_URL || 'https://back-instaonly-849033623078.europe-west1.run.app';
 
 export interface Account {
   id: number;
