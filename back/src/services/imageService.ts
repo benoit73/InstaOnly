@@ -55,7 +55,7 @@ export class ImageService {
   }
 
   // Générer une image
-  async createImage(data: GenerateImageData): Promise<any> {
+  async createImage(data: GenerateImageData & { userId: number }): Promise<any> {
     try {
       const {
         prompt,
@@ -68,56 +68,34 @@ export class ImageService {
         type = '',
         init_images_id,
         seed,
+        userId,
       } = data;
 
-      if (!prompt) {
-        throw new Error('Prompt is required');
-      }
+      if (!prompt) throw new Error('Prompt is required');
+      if (!accountId) throw new Error('accountId is required');
 
-      if (!accountId) {
-        throw new Error('accountId is required');
-      }
-
-      console.log(`Starting image generation with prompt: "${prompt}"`);
+      // Vérifier que le compte appartient bien à l'utilisateur
+      const account = await Account.findOne({
+        where: { id: accountId, userId },
+        include: [{
+          model: Image,
+          as: 'mainImage',
+          attributes: ['id', 'filename', 'filePath', 'seed', 'prompt', 'width', 'height']
+        }]
+      });
+      if (!account) throw new Error('Account not found or does not belong to user');
 
       let result: any;
-
       if (type === "img2img") {
-        // Vérifier que le compte existe et récupérer l'image principale avec la seed
-        const account = await Account.findOne({
-          where: { id: accountId },
-          include: [
-            {
-              model: Image,
-              as: 'mainImage',
-              attributes: ['id', 'filename', 'filePath', 'seed', 'prompt', 'width', 'height']
-            }
-          ]
-        });
-
-        if (!account) {
-          throw new Error('Account not found');
-        }
-
-        console.log(`Using base image seed: ${account.mainImage?.seed}`);
-
-        if (!account.mainImage) {
-          throw new Error('No main image found for this account. Please generate a main image first.');
-        }
-
-        // Récupérer l'image pour img2img
+        if (!account.mainImage) throw new Error('No main image found for this account. Please generate a main image first.');
         let imageForImg2Img: any;
-        
         if (init_images_id) {
-          imageForImg2Img = await this.getImageById(init_images_id);
+          imageForImg2Img = await this.getImageById(init_images_id, userId);
         } else {
           imageForImg2Img = account.mainImage;
         }
-
-        // Mode img2img avec la seed de l'image de base
         const imageBuffer = fs.readFileSync(imageForImg2Img.filePath);
         const base64Image = imageBuffer.toString('base64');
-
         result = await this.stableDiffusionService.img2img({
           prompt,
           negative_prompt,
@@ -125,11 +103,10 @@ export class ImageService {
           height,
           steps,
           denoising_strength,
-          init_images: [base64Image], 
+          init_images: [base64Image],
           seed: account.mainImage.seed,
         });
       } else {
-        // Mode txt2img
         result = await this.stableDiffusionService.txt2img({
           prompt,
           negative_prompt,
@@ -139,28 +116,20 @@ export class ImageService {
         });
       }
 
-      console.log('Image generation completed');
-
-      // Extraire la seed de la réponse
       let generatedSeed: number | undefined;
       try {
         const info = JSON.parse(result.info);
         generatedSeed = info.seed;
-        console.log('Generated with seed:', generatedSeed);
-      } catch (error) {
-        console.warn('Could not extract seed from response:', error);
-      }
+      } catch (error) {}
 
-      // Sauvegarder l'image générée
       const filename = `image_${Date.now()}.png`;
       const filePath = await FileService.saveImageFromBase64(
-        result.images[0], // Première image générée
-        1, // userId par défaut
+        result.images[0],
+        userId,
         accountId,
         filename
       );
 
-      // Enregistrer en base de données
       const image = await Image.create({
         filename,
         filePath,
@@ -169,9 +138,9 @@ export class ImageService {
         width,
         height,
         steps,
-        seed: generatedSeed, // Maintenant supporté en BIGINT
-        userId: 1, // userId par défaut
-        accountId: accountId,
+        seed: generatedSeed,
+        userId,
+        accountId,
         isDeleted: false
       });
 
@@ -187,47 +156,24 @@ export class ImageService {
     }
   }
 
-  // Récupérer toutes les images
-  async getImages(filters?: { accountId?: number; status?: string; includeDeleted?: boolean }): Promise<any[]> {
+  // Récupérer toutes les images pour un utilisateur donné
+  async getImages(userId: number): Promise<any[]> {
     try {
-      const whereClause: any = {};
-      
-      if (filters?.accountId) {
-        whereClause.accountId = filters.accountId;
-      }
-      
-      if (filters?.status) {
-        whereClause.status = filters.status;
-      }
-
-      // Exclure les images supprimées par défaut
-      if (!filters?.includeDeleted) {
-        whereClause.isDeleted = false;
-      }
-
       const images = await Image.findAll({
-        where: whereClause,
-        include: [
-          {
-            model: Account,
-            as: 'account',
-            attributes: ['id', 'name'],
-          }
-        ],
+        where: { userId },
         order: [['createdAt', 'DESC']],
       });
-
       return images.map((img: any) => this.formatImageResponse(img));
     } catch (error) {
       throw new Error(`Failed to fetch images: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  // Récupérer une image par ID
-  async getImageById(id: number): Promise<any> {
+  // Récupérer une image par ID (et vérifier l'appartenance)
+  async getImageById(id: number, userId: number): Promise<any> {
     try {
       const image = await Image.findOne({
-        where: { id },
+        where: { id, userId },
         include: [
           {
             model: Account,
@@ -243,31 +189,20 @@ export class ImageService {
           }
         ],
       });
-
-      if (!image) {
-        throw new Error('Image not found');
-      }
-
+      if (!image) throw new Error('Image not found or does not belong to user');
       return this.formatImageResponse(image);
     } catch (error) {
       throw new Error(`Failed to fetch image: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  // Récupérer les images par compte
-  async getImagesByAccount(accountId: number, filters?: { status?: string; includeDeleted?: boolean }): Promise<any[]> {
+  // Récupérer les images par compte (et vérifier l'appartenance)
+  async getImagesByAccount(accountId: number, userId: number, filters?: { status?: string; includeDeleted?: boolean }): Promise<any[]> {
     try {
-      const whereClause: any = { accountId };
-      
-      if (filters?.status) {
-        whereClause.status = filters.status;
-      }
+      const whereClause: any = { accountId, userId };
+      if (filters?.status) whereClause.status = filters.status;
+      if (!filters?.includeDeleted) whereClause.isDeleted = false;
 
-      // Exclure les images supprimées par défaut
-      if (!filters?.includeDeleted) {
-        whereClause.isDeleted = false;
-      }
-      
       const images = await Image.findAll({
         where: whereClause,
         include: [
@@ -292,14 +227,11 @@ export class ImageService {
     }
   }
 
-  // Mettre à jour une image
-  async updateImage(id: number, updateData: ImageUpdateData): Promise<any> {
+  // Mettre à jour une image (et vérifier l'appartenance)
+  async updateImage(id: number, userId: number, updateData: ImageUpdateData): Promise<any> {
     try {
-      const image = await Image.findByPk(id);
-      if (!image) {
-        throw new Error('Image not found');
-      }
-      
+      const image = await Image.findOne({ where: { id, userId } });
+      if (!image) throw new Error('Image not found or does not belong to user');
       await image.update(updateData);
       return this.formatImageResponse(image);
     } catch (error) {
@@ -307,28 +239,22 @@ export class ImageService {
     }
   }
 
-  // Supprimer une image (hard delete)
-  async deleteImage(id: number): Promise<void> {
+  // Supprimer une image (hard delete, vérifier l'appartenance)
+  async deleteImage(id: number, userId: number): Promise<void> {
     try {
-      const image = await Image.findByPk(id);
-      if (!image) {
-        throw new Error('Image not found');
-      }
-      
+      const image = await Image.findOne({ where: { id, userId } });
+      if (!image) throw new Error('Image not found or does not belong to user');
       await image.destroy();
     } catch (error) {
       throw new Error(`Failed to delete image: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  // Marquer une image comme supprimée (soft delete)
-  async markAsDeleted(id: number): Promise<any> {
+  // Marquer une image comme supprimée (soft delete, vérifier l'appartenance)
+  async markAsDeleted(id: number, userId: number): Promise<any> {
     try {
-      const image = await Image.findByPk(id);
-      if (!image) {
-        throw new Error('Image not found');
-      }
-      
+      const image = await Image.findOne({ where: { id, userId } });
+      if (!image) throw new Error('Image not found or does not belong to user');
       await image.update({ isDeleted: true });
       return {
         id: image.id,
@@ -340,14 +266,11 @@ export class ImageService {
     }
   }
 
-    // Marquer une image comme sauvegardée (soft delete)
-  async markAsSaved(id: number): Promise<any> {
+  // Marquer une image comme sauvegardée (soft delete, vérifier l'appartenance)
+  async markAsSaved(id: number, userId: number): Promise<any> {
     try {
-      const image = await Image.findByPk(id);
-      if (!image) {
-        throw new Error('Image not found');
-      }
-      
+      const image = await Image.findOne({ where: { id, userId } });
+      if (!image) throw new Error('Image not found or does not belong to user');
       await image.update({ isDeleted: false });
       return {
         id: image.id,
@@ -359,42 +282,34 @@ export class ImageService {
     }
   }
 
-  // Vérifier si un fichier image existe
-  async checkImageFileExists(id: number): Promise<boolean> {
+  // Vérifier si un fichier image existe (et appartient à l'utilisateur)
+  async checkImageFileExists(id: number, userId: number): Promise<boolean> {
     try {
-      const image = await Image.findByPk(id);
-      if (!image) {
-        return false;
-      }
+      const image = await Image.findOne({ where: { id, userId } });
+      if (!image) return false;
       return fs.existsSync(image.filePath);
     } catch (error) {
       return false;
     }
   }
 
-  // Obtenir le chemin du fichier image
-  async getImageFilePath(id: number): Promise<string> {
+  // Obtenir le chemin du fichier image (et vérifier l'appartenance)
+  async getImageFilePath(id: number, userId: number): Promise<string> {
     try {
-      const image = await Image.findByPk(id);
-      if (!image) {
-        throw new Error('Image not found');
-      }
-      
-      if (!fs.existsSync(image.filePath)) {
-        throw new Error('Image file not found');
-      }
-      
+      const image = await Image.findOne({ where: { id, userId } });
+      if (!image) throw new Error('Image not found or does not belong to user');
+      if (!fs.existsSync(image.filePath)) throw new Error('Image file not found');
       return image.filePath;
     } catch (error) {
       throw new Error(`Failed to get image file path: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  // Obtenir les informations d'une image
-  async getImageInfo(id: number): Promise<any> {
+  // Obtenir les informations d'une image (et vérifier l'appartenance)
+  async getImageInfo(id: number, userId: number): Promise<any> {
     try {
       const image = await Image.findOne({
-        where: { id },
+        where: { id, userId },
         include: [
           {
             model: Account,
@@ -410,11 +325,7 @@ export class ImageService {
           }
         ],
       });
-
-      if (!image) {
-        throw new Error('Image not found');
-      }
-
+      if (!image) throw new Error('Image not found or does not belong to user');
       return {
         id: image.id,
         filename: image.filename,

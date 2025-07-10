@@ -71,9 +71,9 @@ class ImageService {
   }
 
   // Récupérer toutes les photos
-  async getPhotos(status?: 'draft' | 'scheduled' | 'published'): Promise<Photo[]> {
+  async getPhotos(): Promise<Photo[]> {
     try {
-      const url = status ? `${BACKEND_URL}/photos?status=${status}` : `${BACKEND_URL}/photos`;
+      const url = `${BACKEND_URL}/images`
       const response = await fetch(url, {
         method: 'GET',
         headers: getAuthHeaders(),
@@ -87,30 +87,6 @@ class ImageService {
       return result.data || result;
     } catch (error) {
       console.error('Erreur lors de la récupération des photos:', error);
-      throw error;
-    }
-  }
-
-  // Récupérer les photos d'un compte spécifique
-  async getPhotosByAccount(accountId: number, status?: 'draft' | 'scheduled' | 'published'): Promise<Photo[]> {
-    try {
-      const url = status 
-        ? `${BACKEND_URL}/photos/account/${accountId}?status=${status}` 
-        : `${BACKEND_URL}/photos/account/${accountId}`;
-        
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-      }
-      
-      const result = await response.json();
-      return result.data || result;
-    } catch (error) {
-      console.error('Erreur lors de la récupération des photos du compte:', error);
       throw error;
     }
   }
