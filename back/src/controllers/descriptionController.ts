@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { LlavaService } from '../services/llavaService';
 import { ImageService } from '../services/imageService';
 import fs from 'fs';
+import { AuthenticatedUser } from '../types';
 
 export class DescriptionController {
   private llavaService: LlavaService;
@@ -14,9 +15,17 @@ export class DescriptionController {
 
   // Générer une description pour une image
   async generateDescription(req: Request, res: Response): Promise<void> {
+    const user = req.user as AuthenticatedUser | undefined;
+        if (!user) {
+            res.status(401).json({
+            success: false,
+            error: 'User authentication required',
+            });
+            return;
+        }
     try {
       const { imageId, prompt } = req.query;
-
+    
       if (!imageId) {
         res.status(400).json({
           success: false,
@@ -36,7 +45,7 @@ export class DescriptionController {
       }
 
       // Récupérer l'image
-      const image = await this.imageService.getImageById(id);
+      const image = await this.imageService.getImageById(id, user.id);
       
       if (!image) {
         res.status(404).json({
@@ -85,119 +94,6 @@ export class DescriptionController {
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to generate description'
-      });
-    }
-  }
-
-  // Activer/sauvegarder une description pour une image
-  async activateDescription(req: Request, res: Response): Promise<void> {
-    try {
-      const { idImage, description } = req.body;
-
-      if (!idImage) {
-        res.status(400).json({
-          success: false,
-          error: 'idImage is required'
-        });
-        return;
-      }
-
-      if (!description || typeof description !== 'string' || description.trim() === '') {
-        res.status(400).json({
-          success: false,
-          error: 'description is required and must be a non-empty string'
-        });
-        return;
-      }
-
-      const imageId = parseInt(idImage);
-      
-      if (isNaN(imageId)) {
-        res.status(400).json({
-          success: false,
-          error: 'idImage must be a valid number'
-        });
-        return;
-      }
-
-      // Vérifier que l'image existe
-      const image = await this.imageService.getImageById(imageId);
-      
-      if (!image) {
-        res.status(404).json({
-          success: false,
-          error: 'Image not found'
-        });
-        return;
-      }
-
-      // Mettre à jour l'image avec la description
-      const updatedImage = await this.imageService.updateImage(imageId, {
-        description: description.trim()
-      });
-
-      res.json({
-        success: true,
-        message: 'Description activated successfully',
-        data: {
-          imageId: imageId,
-          description: description.trim(),
-          image: updatedImage
-        }
-      });
-
-    } catch (error) {
-      console.error('Description activation error:', error);
-      res.status(500).json({
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to activate description'
-      });
-    }
-  }
-
-  // Récupérer la description d'une image
-  async getDescription(req: Request, res: Response): Promise<void> {
-    try {
-      const { id } = req.params;
-      const imageId = parseInt(id);
-
-      if (isNaN(imageId)) {
-        res.status(400).json({
-          success: false,
-          error: 'Valid image ID is required'
-        });
-        return;
-      }
-
-      const image = await this.imageService.getImageById(imageId);
-
-      if (!image) {
-        res.status(404).json({
-          success: false,
-          error: 'Image not found'
-        });
-        return;
-      }
-
-      res.json({
-        success: true,
-        data: {
-          imageId: imageId,
-          description: image.description || null,
-          hasDescription: !!image.description,
-          image: {
-            id: image.id,
-            filename: image.filename,
-            prompt: image.prompt
-          }
-        }
-      });
-
-    } catch (error) {
-      console.error('Get description error:', error);
-      res.status(500).json({
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to get description'
       });
     }
   }

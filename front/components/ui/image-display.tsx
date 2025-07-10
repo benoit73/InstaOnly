@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import { useState } from "react"
+import { imageService } from "@/services/imageService"
 
 interface ImageDisplayProps {
   photo: {
@@ -17,12 +18,8 @@ interface ImageDisplayProps {
 }
 
 export function ImageDisplay({ photo, alt, className, width, height }: ImageDisplayProps) {
-  const [imageSrc, setImageSrc] = useState<string>(() => {
-    // Construire l'URL de l'image
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-    return `${baseUrl}/photos/${photo.id}/file`
-  })
-
+  // Utilise la méthode du service pour générer l'URL
+  const [imageSrc, setImageSrc] = useState<string>(() => imageService.getImageFileUrl(photo.id))
   const [imageError, setImageError] = useState(false)
 
   const handleError = () => {
@@ -58,6 +55,16 @@ export function ImageDisplay({ photo, alt, className, width, height }: ImageDisp
       onError={handleError}
       onLoad={handleLoad}
       unoptimized // Important pour éviter les problèmes avec Next.js Image optimization
+    />
+  )
+}
+
+export function ImageDisplayLegacy({ src, alt, ...props }: { src: string; alt?: string; [key: string]: any }) {
+  return (
+    <Image
+      src={src}
+      alt={alt || "Image"}
+      {...props}
     />
   )
 }

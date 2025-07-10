@@ -3,7 +3,7 @@ const NEXT_PUBLIC_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://
 export interface Account {
   id: number;
   name: string;
-  description?: string; //t
+  description?: string;
   mainImageId?: number;
   mainImage?: {
     id: number;

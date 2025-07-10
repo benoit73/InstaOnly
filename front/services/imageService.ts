@@ -91,6 +91,27 @@ class ImageService {
     }
   }
 
+   // Récupérer toutes les images d'un compte
+  async getImagesByAccount(idAccount: number): Promise<Photo[]> {
+    try {
+      const url = `${NEXT_PUBLIC_BACKEND_URL}/images/account/${idAccount}`
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      return result.data || result;
+    } catch (error) {
+      console.error('Erreur lors de la récupération des photos:', error);
+      throw error;
+    }
+  }
+
   // Récupérer une photo par ID
   async getPhoto(id: number): Promise<Photo> {
     try {
