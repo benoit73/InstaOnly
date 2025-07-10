@@ -4,7 +4,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Instagram, LayoutDashboard, Users, ImageIcon, Menu, Sparkles, LogOut, User } from "lucide-react"
+import { Instagram, LayoutDashboard, Users, ImageIcon, Menu, Sparkles, LogOut, User, Send } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { 
   DropdownMenu, 
@@ -181,6 +181,13 @@ export default function DashboardLayout({
                       Générer
                     </Button>
                   </Link>
+                  {/* Onglet Publication */}
+                  <Link href="/dashboard/publication">
+                    <Button variant="ghost" className="w-full justify-start">
+                      <Send className="mr-2 h-5 w-5 text-blue-500" />
+                      Publication
+                    </Button>
+                  </Link>
                 </nav>
                 
                 {/* Section d'authentification mobile */}
@@ -223,6 +230,13 @@ export default function DashboardLayout({
               <Button variant="ghost" className="w-full justify-start">
                 <Sparkles className="mr-2 h-5 w-5" />
                 Générer
+              </Button>
+            </Link>
+            {/* Onglet Publication */}
+            <Link href="/dashboard/publication">
+              <Button variant="ghost" className="w-full justify-start">
+                <Send className="mr-2 h-5 w-5 text-blue-500" />
+                Publication
               </Button>
             </Link>
           </nav>
