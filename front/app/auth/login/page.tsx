@@ -41,7 +41,7 @@ export default function LoginPage() {
 
   const handleGoogleLogin = () => {
     // Rediriger vers l'endpoint Google OAuth du backend
-    window.location.href = `${process.env.NEXT_PUBLIC_BACK_URL || 'http://localhost:3001'}/auth/google`
+    window.location.href = `${process.env.BACKEND_URL || 'http://localhost:3001'}/auth/google`
   }
 
   const handleInputChange = (field: string, value: string) => {

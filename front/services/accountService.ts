@@ -1,6 +1,6 @@
 import { getAuthHeaders } from '../helper/authHelper';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACK_URL || 'https://back-instaonly-849033623078.europe-west1.run.app';
+const API_BASE_URL = process.env.BACKEND_URL || 'https://back-instaonly-849033623078.europe-west1.run.app';
 export interface Account {
   id: number;
   name: string; // Correspond au backend v2

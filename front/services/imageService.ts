@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACK_URL || 'http://localhost:3001/';
+const API_BASE_URL = process.env.BACKEND_URL || 'http://localhost:3001/';
 
 export interface Photo {
   id: number;
