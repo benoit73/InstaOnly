@@ -1,3 +1,5 @@
+import { getAuthHeaders } from '../helper/authHelper';
+
 const API_BASE_URL = process.env.BACKEND_URL || 'http://localhost:3001/';
 
 export interface Photo {
@@ -74,9 +76,7 @@ class ImageService {
       const url = status ? `${API_BASE_URL}/photos?status=${status}` : `${API_BASE_URL}/photos`;
       const response = await fetch(url, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
       });
       
       if (!response.ok) {
@@ -100,9 +100,7 @@ class ImageService {
         
       const response = await fetch(url, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
       });
       
       if (!response.ok) {
@@ -122,9 +120,7 @@ class ImageService {
     try {
       const response = await fetch(`${API_BASE_URL}/photos/${id}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
       });
       
       if (!response.ok) {
@@ -144,9 +140,7 @@ class ImageService {
     try {
       const response = await fetch(`${API_BASE_URL}/images/generate`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(generateData),
       });
 
@@ -167,9 +161,7 @@ class ImageService {
     try {
       const response = await fetch(`${API_BASE_URL}/images/generate`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(generateData),
       });
 
@@ -190,9 +182,7 @@ class ImageService {
     try {
       const response = await fetch(`${API_BASE_URL}/photos/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(updateData),
       });
 
@@ -213,9 +203,7 @@ class ImageService {
     try {
       const response = await fetch(`${API_BASE_URL}/photos/${id}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
       });
 
       if (!response.ok) {
@@ -232,9 +220,7 @@ class ImageService {
     try {
       const response = await fetch(`${API_BASE_URL}/photos/${id}/duplicate`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
       });
 
       if (!response.ok) {
@@ -254,9 +240,7 @@ class ImageService {
     try {
       const response = await fetch(`${API_BASE_URL}/photos/${id}/variants`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ count }),
       });
 
@@ -282,9 +266,7 @@ class ImageService {
   async markAsSaved(photoId: number): Promise<void> {
     const response = await fetch(`${API_BASE_URL}/images/${photoId}/mark-saved`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
