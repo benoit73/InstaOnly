@@ -1,9 +1,50 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Users, ImageIcon, History } from "lucide-react"
+import { accountService } from "@/services/accountService"
+import { imageService } from "@/services/imageService"
+import { userService } from "@/services/userService"
 
 export default function DashboardPage() {
+  const [accountsCount, setAccountsCount] = useState<number | null>(null)
+  const [photosCount, setPhotosCount] = useState<number | null>(null)
+  const [storiesCount, setStoriesCount] = useState<number | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Récupérer l'utilisateur courant pour avoir son id
+        const user = await userService.getUserByToken()
+        // Récupérer les comptes Instagram
+        const accounts = await accountService.getAccounts()
+        setAccountsCount(accounts.length)
+
+        // Récupérer toutes les photos de tous les comptes de l'utilisateur
+        let totalPhotos = 0
+        let totalStories = 0
+        for (const account of accounts) {
+          const photos = await imageService.getPhotos()
+          totalPhotos += photos.filter((p: any) => !p.isStory).length
+          totalStories += photos.filter((p: any) => p.isStory).length
+        }
+        setPhotosCount(totalPhotos)
+        setStoriesCount(totalStories)
+      } catch (e) {
+        setAccountsCount(0)
+        setPhotosCount(0)
+        setStoriesCount(0)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
+
   return (
     <div className="container p-4 md:p-8 space-y-8">
       <div>
@@ -18,7 +59,9 @@ export default function DashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3</div>
+            <div className="text-2xl font-bold">
+              {loading ? "..." : accountsCount}
+            </div>
             <p className="text-xs text-muted-foreground">Comptes Instagram gérés</p>
             <div className="mt-4">
               <Link href="/dashboard/accounts">
@@ -35,7 +78,9 @@ export default function DashboardPage() {
             <ImageIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-2xl font-bold">
+              {loading ? "..." : photosCount}
+            </div>
             <p className="text-xs text-muted-foreground">Photos prêtes à publier</p>
             <div className="mt-4">
               <Link href="/dashboard/photos">
@@ -52,7 +97,9 @@ export default function DashboardPage() {
             <History className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">5</div>
+            <div className="text-2xl font-bold">
+              {loading ? "..." : storiesCount}
+            </div>
             <p className="text-xs text-muted-foreground">Stories actives</p>
             <div className="mt-4">
               <Link href="/dashboard/photos">

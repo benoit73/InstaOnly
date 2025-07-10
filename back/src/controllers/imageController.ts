@@ -1,6 +1,7 @@
 import { Response, Request } from 'express';
 import path from 'path';
 import { ImageService } from '../services/imageService';
+import { AuthenticatedUser } from '../types';
 
 export class ImageController {
   private imageService: ImageService;
@@ -11,10 +12,17 @@ export class ImageController {
 
   // Générer une image
   async generateImg(req: Request, res: Response): Promise<void> {
-    console.log('generateImg starting..');
+    const user = req.user as AuthenticatedUser | undefined;
+    if (!user) {
+      res.status(401).json({
+        success: false,
+        error: 'User authentication required',
+      });
+      return;
+    }
     try {
-      const result = await this.imageService.createImage(req.body);
-      
+      // Ajoute le userId dans le body pour le service
+      const result = await this.imageService.createImage({ ...req.body, userId: user.id });
       res.status(201).json({
         success: true,
         message: 'Image generated successfully',
@@ -22,7 +30,6 @@ export class ImageController {
       });
     } catch (error: any) {
       console.error('Error generating normal image:', error);
-      
       if (error.name === 'AbortError') {
         res.status(408).json({ 
           success: false,
@@ -41,17 +48,16 @@ export class ImageController {
 
   // Récupérer toutes les images
   async getImages(req: Request, res: Response): Promise<void> {
+    const user = req.user as AuthenticatedUser | undefined;
+    if (!user) {
+      res.status(401).json({
+        success: false,
+        error: 'User authentication required',
+      });
+      return;
+    }
     try {
-      const { accountId, status, includeDeleted } = req.query;
-      
-      const filters = {
-        accountId: accountId ? Number(accountId) : undefined,
-        status: status as string,
-        includeDeleted: includeDeleted === 'true'
-      };
-
-      const images = await this.imageService.getImages(filters);
-
+      const images = await this.imageService.getImages(user.id);
       res.json({
         success: true,
         data: images,
@@ -59,7 +65,7 @@ export class ImageController {
       });
     } catch (error: any) {
       console.error('Error fetching images:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
         error: 'Failed to fetch images',
         message: error.message
@@ -69,10 +75,18 @@ export class ImageController {
 
   // Récupérer une image par ID et servir le fichier
   async getImageById(req: Request, res: Response): Promise<void> {
+    const user = req.user as AuthenticatedUser | undefined;
+    if (!user) {
+      res.status(401).json({
+        success: false,
+        error: 'User authentication required',
+      });
+      return;
+    }
     try {
       const { id } = req.params;
-      const filePath = await this.imageService.getImageFilePath(Number(id));
-      
+      // Optionnel : tu peux vérifier ici que l'image appartient bien à user.id
+      const filePath = await this.imageService.getImageFilePath(Number(id), user.id);
       res.sendFile(path.resolve(filePath));
     } catch (error: any) {
       console.error('Error fetching image:', error);
@@ -86,10 +100,18 @@ export class ImageController {
 
   // Obtenir les informations d'une image
   async getImageInfo(req: Request, res: Response): Promise<void> {
+    const user = req.user as AuthenticatedUser | undefined;
+    if (!user) {
+      res.status(401).json({
+        success: false,
+        error: 'User authentication required',
+      });
+      return;
+    }
     try {
       const { id } = req.params;
-      const imageInfo = await this.imageService.getImageInfo(Number(id));
-
+      // Optionnel : tu peux vérifier ici que l'image appartient bien à user.id
+      const imageInfo = await this.imageService.getImageInfo(Number(id), user.id);
       res.json({
         success: true,
         data: imageInfo
@@ -106,17 +128,23 @@ export class ImageController {
 
   // Récupérer les images par compte
   async getImagesByAccount(req: Request, res: Response): Promise<void> {
+    const user = req.user as AuthenticatedUser | undefined;
+    if (!user) {
+      res.status(401).json({
+        success: false,
+        error: 'User authentication required',
+      });
+      return;
+    }
     try {
       const { accountId } = req.params;
       const { status, includeDeleted } = req.query;
-      
       const filters = {
         status: status as string,
         includeDeleted: includeDeleted === 'true'
       };
-
-      const images = await this.imageService.getImagesByAccount(Number(accountId), filters);
-
+      // Optionnel : tu peux vérifier ici que le compte appartient bien à user.id
+      const images = await this.imageService.getImagesByAccount(Number(accountId), user.id, filters);
       res.json({
         success: true,
         data: images,
@@ -134,10 +162,18 @@ export class ImageController {
 
   // Mettre à jour une image
   async updateImage(req: Request, res: Response): Promise<void> {
+    const user = req.user as AuthenticatedUser | undefined;
+    if (!user) {
+      res.status(401).json({
+        success: false,
+        error: 'User authentication required',
+      });
+      return;
+    }
     try {
       const { id } = req.params;
-      const image = await this.imageService.updateImage(Number(id), req.body);
-      
+      // Optionnel : tu peux vérifier ici que l'image appartient bien à user.id
+      const image = await this.imageService.updateImage(Number(id),  user.id, req.body);
       res.json({
         success: true,
         data: image
@@ -154,10 +190,18 @@ export class ImageController {
 
   // Supprimer une image
   async deleteImage(req: Request, res: Response): Promise<void> {
+    const user = req.user as AuthenticatedUser | undefined;
+    if (!user) {
+      res.status(401).json({
+        success: false,
+        error: 'User authentication required',
+      });
+      return;
+    }
     try {
       const { id } = req.params;
-      await this.imageService.deleteImage(Number(id));
-      
+      // Optionnel : tu peux vérifier ici que l'image appartient bien à user.id
+      await this.imageService.deleteImage(Number(id), user.id);
       res.json({
         success: true,
         message: 'Image deleted successfully'
@@ -174,10 +218,18 @@ export class ImageController {
 
   // Marquer une image comme supprimée
   async markAsDeleted(req: Request, res: Response): Promise<void> {
+    const user = req.user as AuthenticatedUser | undefined;
+    if (!user) {
+      res.status(401).json({
+        success: false,
+        error: 'User authentication required',
+      });
+      return;
+    }
     try {
       const { id } = req.params;
-      const result = await this.imageService.markAsDeleted(Number(id));
-      
+      // Optionnel : tu peux vérifier ici que l'image appartient bien à user.id
+      const result = await this.imageService.markAsDeleted(Number(id), user.id);
       res.json({
         success: true,
         message: 'Image marked as deleted successfully',
@@ -193,12 +245,20 @@ export class ImageController {
     }
   }
 
-    // Marquer une image comme sauvegardée
+  // Marquer une image comme sauvegardée
   async markAsSaved(req: Request, res: Response): Promise<void> {
+    const user = req.user as AuthenticatedUser | undefined;
+    if (!user) {
+      res.status(401).json({
+        success: false,
+        error: 'User authentication required',
+      });
+      return;
+    }
     try {
       const { id } = req.params;
-      const result = await this.imageService.markAsSaved(Number(id));
-      
+      // Optionnel : tu peux vérifier ici que l'image appartient bien à user.id
+      const result = await this.imageService.markAsSaved(Number(id), user.id);
       res.json({
         success: true,
         message: 'Image marked as saved successfully',
@@ -216,6 +276,14 @@ export class ImageController {
 
   // Publier une photo (placeholder)
   async publishPhoto(req: Request, res: Response): Promise<void> {
+    const user = req.user as AuthenticatedUser | undefined;
+    if (!user) {
+      res.status(401).json({
+        success: false,
+        error: 'User authentication required',
+      });
+      return;
+    }
     res.status(501).json({
       success: false,
       error: 'Instagram publishing not implemented yet'
@@ -224,6 +292,14 @@ export class ImageController {
 
   // Programmer une photo (placeholder)
   async schedulePhoto(req: Request, res: Response): Promise<void> {
+    const user = req.user as AuthenticatedUser | undefined;
+    if (!user) {
+      res.status(401).json({
+        success: false,
+        error: 'User authentication required',
+      });
+      return;
+    }
     res.status(501).json({
       success: false,
       error: 'Photo scheduling not implemented yet'
