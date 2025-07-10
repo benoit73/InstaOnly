@@ -29,6 +29,7 @@ export default function PublicationPage() {
   const [selectedPhotoId, setSelectedPhotoId] = useState<string>("");
   const [site, setSite] = useState<"instagram" | "autre">("instagram");
   const [description, setDescription] = useState<string>("");
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     accountService.getAccounts().then(setAccounts).catch(() => setAccounts([]));
@@ -46,11 +47,14 @@ export default function PublicationPage() {
 
   const handleGenerateDescription = async () => {
     if (!selectedPhotoId) return;
+    setIsGenerating(true);
     try {
       const res = await descriptionService.generateDescription(Number(selectedPhotoId));
       setDescription(res.description);
     } catch (e) {
       setDescription("Erreur lors de la génération de la description.");
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -182,12 +186,18 @@ export default function PublicationPage() {
               <textarea
                 className="w-full border rounded p-2"
                 rows={3}
-                value={description}
+                value={isGenerating ? "Génération de la description en cours..." : description}
                 onChange={e => setDescription(e.target.value)}
                 placeholder="Génère ou modifie la description ici..."
+                disabled={isGenerating}
               />
-              <Button className="mt-2" onClick={handleGenerateDescription} disabled={!selectedPhotoId} type="button">
-                Générer une description
+              <Button
+                className="mt-2"
+                onClick={handleGenerateDescription}
+                disabled={!selectedPhotoId || isGenerating}
+                type="button"
+              >
+                {isGenerating ? "Génération en cours..." : "Générer une description"}
               </Button>
             </div>
           </div>
