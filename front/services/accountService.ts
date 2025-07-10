@@ -1,6 +1,6 @@
 import { getAuthHeaders } from '../helper/authHelper';
 
-const BACKEND_URL = process.env.BACKEND_URL || 'https://back-instaonly-849033623078.europe-west1.run.app';
+const NEXT_PUBLIC_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://back-instaonly-849033623078.europe-west1.run.app';
 export interface Account {
   id: number;
   name: string; // Correspond au backend v2
@@ -54,8 +54,8 @@ export const accountService = {
   // Récupérer tous les comptes
   async getAccounts(): Promise<Account[]> {
     try {
-      console.log('Fetching accounts from:', `${BACKEND_URL}/accounts`);
-      const response = await fetch(`${BACKEND_URL}/accounts`, {
+      console.log('Fetching accounts from:', `${NEXT_PUBLIC_BACKEND_URL}/accounts`);
+      const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/accounts`, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
@@ -81,7 +81,7 @@ export const accountService = {
   // Récupérer un compte par ID
   async getAccount(id: number): Promise<Account> {
     try {
-      const response = await fetch(`${BACKEND_URL}/accounts/${id}`, {
+      const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/accounts/${id}`, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
@@ -102,7 +102,7 @@ export const accountService = {
   // Créer un nouveau compte
   async createAccount(accountData: CreateAccountRequest): Promise<Account> {
     try {
-      const response = await fetch(`${BACKEND_URL}/accounts`, {
+      const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/accounts`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(accountData),
@@ -124,7 +124,7 @@ export const accountService = {
   // Mettre à jour un compte
   async updateAccount(id: number, updateData: UpdateAccountRequest): Promise<Account> {
     try {
-      const response = await fetch(`${BACKEND_URL}/accounts/${id}`, {
+      const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/accounts/${id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify(updateData),
@@ -146,7 +146,7 @@ export const accountService = {
   // Supprimer un compte
   async deleteAccount(id: number): Promise<void> {
     try {
-      const response = await fetch(`${BACKEND_URL}/accounts/${id}`, {
+      const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/accounts/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
@@ -164,7 +164,7 @@ export const accountService = {
   // Définir l'image principale d'un compte
   async setMainImage(accountId: number, imageId: number): Promise<void> {
     try {
-      const response = await fetch(`${BACKEND_URL}/accounts/${accountId}/main-image`, {
+      const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/accounts/${accountId}/main-image`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({ imageId }),

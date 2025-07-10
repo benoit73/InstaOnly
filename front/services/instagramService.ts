@@ -1,4 +1,4 @@
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000/';
+const NEXT_PUBLIC_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000/';
 
 export interface InstagramMedia {
   id: string;
@@ -77,7 +77,7 @@ export interface MediaInsights {
 export const instagramService = {
   // Récupérer les informations d'un compte Instagram
   async getAccountInfo(accountId: number): Promise<InstagramAccount> {
-    const response = await fetch(`${BACKEND_URL}/instagram/accounts/${accountId}/info`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/instagram/accounts/${accountId}/info`, {
       headers: {
         'Authorization': `Bearer ${this.getToken()}`,
       },
@@ -91,7 +91,7 @@ export const instagramService = {
 
   // Récupérer les médias d'un compte Instagram
   async getAccountMedia(accountId: number, limit: number = 25): Promise<InstagramMedia[]> {
-    const response = await fetch(`${BACKEND_URL}/instagram/accounts/${accountId}/media?limit=${limit}`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/instagram/accounts/${accountId}/media?limit=${limit}`, {
       headers: {
         'Authorization': `Bearer ${this.getToken()}`,
       },
@@ -105,7 +105,7 @@ export const instagramService = {
 
   // Publier une photo/vidéo sur Instagram
   async publishMedia(accountId: number, mediaData: PublishMediaRequest): Promise<{ id: string; permalink: string }> {
-    const response = await fetch(`${BACKEND_URL}/instagram/accounts/${accountId}/publish`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/instagram/accounts/${accountId}/publish`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -123,7 +123,7 @@ export const instagramService = {
 
   // Publier une story sur Instagram
   async publishStory(accountId: number, storyData: PublishStoryRequest): Promise<{ id: string }> {
-    const response = await fetch(`${BACKEND_URL}/instagram/accounts/${accountId}/stories`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/instagram/accounts/${accountId}/stories`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -141,7 +141,7 @@ export const instagramService = {
 
   // Publier un carrousel (plusieurs images/vidéos)
   async publishCarousel(accountId: number, mediaUrls: string[], caption?: string): Promise<{ id: string; permalink: string }> {
-    const response = await fetch(`${BACKEND_URL}/instagram/accounts/${accountId}/carousel`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/instagram/accounts/${accountId}/carousel`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -162,7 +162,7 @@ export const instagramService = {
 
   // Récupérer les insights d'un compte
   async getAccountInsights(accountId: number, period: 'day' | 'week' | 'days_28' = 'week'): Promise<InstagramInsights> {
-    const response = await fetch(`${BACKEND_URL}/instagram/accounts/${accountId}/insights?period=${period}`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/instagram/accounts/${accountId}/insights?period=${period}`, {
       headers: {
         'Authorization': `Bearer ${this.getToken()}`,
       },
@@ -176,7 +176,7 @@ export const instagramService = {
 
   // Récupérer les insights d'un média spécifique
   async getMediaInsights(accountId: number, mediaId: string): Promise<MediaInsights> {
-    const response = await fetch(`${BACKEND_URL}/instagram/accounts/${accountId}/media/${mediaId}/insights`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/instagram/accounts/${accountId}/media/${mediaId}/insights`, {
       headers: {
         'Authorization': `Bearer ${this.getToken()}`,
       },
@@ -190,7 +190,7 @@ export const instagramService = {
 
   // Supprimer un média Instagram
   async deleteMedia(accountId: number, mediaId: string): Promise<void> {
-    const response = await fetch(`${BACKEND_URL}/instagram/accounts/${accountId}/media/${mediaId}`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/instagram/accounts/${accountId}/media/${mediaId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${this.getToken()}`,
@@ -210,7 +210,7 @@ export const instagramService = {
     timestamp: string;
     like_count: number;
   }>> {
-    const response = await fetch(`${BACKEND_URL}/instagram/accounts/${accountId}/media/${mediaId}/comments`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/instagram/accounts/${accountId}/media/${mediaId}/comments`, {
       headers: {
         'Authorization': `Bearer ${this.getToken()}`,
       },
@@ -224,7 +224,7 @@ export const instagramService = {
 
   // Répondre à un commentaire
   async replyToComment(accountId: number, commentId: string, message: string): Promise<{ id: string }> {
-    const response = await fetch(`${BACKEND_URL}/instagram/accounts/${accountId}/comments/${commentId}/replies`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/instagram/accounts/${accountId}/comments/${commentId}/replies`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -241,7 +241,7 @@ export const instagramService = {
 
   // Masquer/supprimer un commentaire
   async hideComment(accountId: number, commentId: string): Promise<void> {
-    const response = await fetch(`${BACKEND_URL}/instagram/accounts/${accountId}/comments/${commentId}/hide`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/instagram/accounts/${accountId}/comments/${commentId}/hide`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${this.getToken()}`,
@@ -255,7 +255,7 @@ export const instagramService = {
 
   // Programmer une publication
   async schedulePost(accountId: number, mediaData: PublishMediaRequest, scheduledTime: string): Promise<{ id: string }> {
-    const response = await fetch(`${BACKEND_URL}/instagram/accounts/${accountId}/schedule`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/instagram/accounts/${accountId}/schedule`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -281,7 +281,7 @@ export const instagramService = {
     creation_id: string;
     status: 'SCHEDULED' | 'PUBLISHED' | 'ERROR';
   }>> {
-    const response = await fetch(`${BACKEND_URL}/instagram/accounts/${accountId}/scheduled`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/instagram/accounts/${accountId}/scheduled`, {
       headers: {
         'Authorization': `Bearer ${this.getToken()}`,
       },
@@ -295,7 +295,7 @@ export const instagramService = {
 
   // Annuler une publication programmée
   async cancelScheduledPost(accountId: number, creationId: string): Promise<void> {
-    const response = await fetch(`${BACKEND_URL}/instagram/accounts/${accountId}/scheduled/${creationId}`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/instagram/accounts/${accountId}/scheduled/${creationId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${this.getToken()}`,

@@ -1,4 +1,4 @@
-const BACKEND_URL = process.env.BACKEND_URL || 'https://back-instaonly-849033623078.europe-west1.run.app';
+const NEXT_PUBLIC_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://back-instaonly-849033623078.europe-west1.run.app';
 
 export interface Account {
   id: number;
@@ -59,7 +59,7 @@ export interface AuthResponse {
 export const userService = {
   // Connexion utilisateur
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    const response = await fetch(`${BACKEND_URL}/auth/login`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -84,7 +84,7 @@ export const userService = {
 
   // Inscription utilisateur
   async register(userData: RegisterRequest): Promise<AuthResponse> {
-    const response = await fetch(`${BACKEND_URL}/auth/register`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -112,7 +112,7 @@ export const userService = {
     const token = this.getToken();
     
     if (token) {
-      await fetch(`${BACKEND_URL}/auth/logout`, {
+      await fetch(`${NEXT_PUBLIC_BACKEND_URL}/auth/logout`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -135,7 +135,7 @@ export const userService = {
       throw new Error('Token manquant');
     }
 
-    const response = await fetch(`${BACKEND_URL}/user/me`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/user/me`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -175,7 +175,7 @@ export const userService = {
 
   // Mettre à jour le profil utilisateur
   async updateProfile(updateData: UpdateUserRequest): Promise<User> {
-    const response = await fetch(`${BACKEND_URL}/users/profile`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/users/profile`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -193,7 +193,7 @@ export const userService = {
 
   // Changer le mot de passe
   async changePassword(passwordData: ChangePasswordRequest): Promise<void> {
-    const response = await fetch(`${BACKEND_URL}/users/change-password`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/users/change-password`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -215,7 +215,7 @@ export const userService = {
       throw new Error('Token de rafraîchissement non disponible');
     }
 
-    const response = await fetch(`${BACKEND_URL}/auth/refresh`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/auth/refresh`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -260,7 +260,7 @@ export const userService = {
 
   // Supprimer un utilisateur (admin uniquement)
   async deleteUser(userId: number): Promise<void> {
-    const response = await fetch(`${BACKEND_URL}/users/${userId}`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/users/${userId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${this.getToken()}`,
@@ -274,7 +274,7 @@ export const userService = {
 
   // Récupérer tous les utilisateurs (admin uniquement)
   async getUsers(): Promise<User[]> {
-    const response = await fetch(`${BACKEND_URL}/users`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/users`, {
       headers: {
         'Authorization': `Bearer ${this.getToken()}`,
       },

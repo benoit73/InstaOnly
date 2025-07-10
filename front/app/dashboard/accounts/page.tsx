@@ -29,7 +29,7 @@ export default function AccountsPage() {
       setAccounts(data)
     } catch (error) {
       console.error('Erreur lors du chargement des comptes:', error)
-      setError(`Erreur lors du chargement des comptes. URL: ${process.env.BACKEND_URL || 'http://localhost:3001/'}`)
+      setError(`Erreur lors du chargement des comptes. URL: ${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001/'}`)
     } finally {
       setLoading(false)
     }
@@ -112,7 +112,7 @@ export default function AccountsPage() {
                 <div className="relative h-12 w-12 rounded-full overflow-hidden bg-gray-200">
                   {account.mainImage ? (
                     <Image
-                      src={`${process.env.BACKEND_URL?.replace('/', '') || 'http://localhost:3001'}/images/${account.mainImage.id}`}
+                      src={`${process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/', '') || 'http://localhost:3001'}/images/${account.mainImage.id}`}
                       alt={account.name}
                       fill
                       className="object-cover"

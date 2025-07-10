@@ -36,7 +36,7 @@ export default function ErrorContent() {
                 Retour à la connexion
               </Button>
               <Button
-                onClick={() => window.location.href = `${process.env.BACKEND_URL || 'http://localhost:3001'}/auth/google`}
+                onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/auth/google`}
               >
                 Réessayer avec Google
               </Button>

@@ -1,6 +1,6 @@
 import { getAuthHeaders } from '../helper/authHelper';
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
+const NEXT_PUBLIC_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
 export interface Photo {
   id: number;
@@ -67,13 +67,13 @@ export interface GenerateRequest {
 class ImageService {
   // Génère l'URL pour accéder à un fichier d'image par ID
   getImageFileUrl(imageId: number): string {
-    return `${BACKEND_URL}/images/${imageId}/file`;
+    return `${NEXT_PUBLIC_BACKEND_URL}/images/${imageId}/file`;
   }
 
   // Récupérer toutes les photos
   async getPhotos(): Promise<Photo[]> {
     try {
-      const url = `${BACKEND_URL}/images`
+      const url = `${NEXT_PUBLIC_BACKEND_URL}/images`
       const response = await fetch(url, {
         method: 'GET',
         headers: getAuthHeaders(),
@@ -94,7 +94,7 @@ class ImageService {
   // Récupérer une photo par ID
   async getPhoto(id: number): Promise<Photo> {
     try {
-      const response = await fetch(`${BACKEND_URL}/photos/${id}`, {
+      const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/photos/${id}`, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
@@ -114,7 +114,7 @@ class ImageService {
   // Générer une image de base avec IA (txt2img)
   async generateBaseImage(generateData: GenerateRequest): Promise<Photo> {
     try {
-      const response = await fetch(`${BACKEND_URL}/images/generate`, {
+      const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/images/generate`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(generateData),
@@ -135,7 +135,7 @@ class ImageService {
   // Générer une image à partir de l'image de base
   async generateImageFromBase(generateData: GenerateRequest & { baseImageId: number }): Promise<Photo> {
     try {
-      const response = await fetch(`${BACKEND_URL}/images/generate`, {
+      const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/images/generate`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(generateData),
@@ -156,7 +156,7 @@ class ImageService {
   // Mettre à jour une photo
   async updatePhoto(id: number, updateData: UpdatePhotoRequest): Promise<Photo> {
     try {
-      const response = await fetch(`${BACKEND_URL}/photos/${id}`, {
+      const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/photos/${id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify(updateData),
@@ -177,7 +177,7 @@ class ImageService {
   // Supprimer une photo
   async deletePhoto(id: number): Promise<void> {
     try {
-      const response = await fetch(`${BACKEND_URL}/photos/${id}`, {
+      const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/photos/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
@@ -194,7 +194,7 @@ class ImageService {
   // Dupliquer une photo
   async duplicatePhoto(id: number): Promise<Photo> {
     try {
-      const response = await fetch(`${BACKEND_URL}/photos/${id}/duplicate`, {
+      const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/photos/${id}/duplicate`, {
         method: 'POST',
         headers: getAuthHeaders(),
       });
@@ -214,7 +214,7 @@ class ImageService {
   // Créer des variantes d'une photo
   async createVariants(id: number, count: number = 3): Promise<Photo[]> {
     try {
-      const response = await fetch(`${BACKEND_URL}/photos/${id}/variants`, {
+      const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/photos/${id}/variants`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ count }),
@@ -235,12 +235,12 @@ class ImageService {
   // Alternative : obtenir l'URL via le chemin direct
   getImageDirectUrl(photo: Photo): string {
     // Servir via les fichiers statiques (garde / et utilise /uploads)
-    return `${BACKEND_URL}/files/${photo.filePath.replace('uploads/', '')}`;
+    return `${NEXT_PUBLIC_BACKEND_URL}/files/${photo.filePath.replace('uploads/', '')}`;
   }
 
   // Marquer une photo comme sauvegardée
   async markAsSaved(photoId: number): Promise<void> {
-    const response = await fetch(`${BACKEND_URL}/images/${photoId}/mark-saved`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/images/${photoId}/mark-saved`, {
       method: 'PUT',
       headers: getAuthHeaders(),
     });
