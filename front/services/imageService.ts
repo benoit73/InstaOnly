@@ -62,6 +62,7 @@ export interface GenerateRequest {
   accountId: number;
   description?: string;
   isStory?: boolean;
+  type?: string;
 }
 
 class ImageService {
@@ -155,6 +156,7 @@ class ImageService {
 
   // Générer une image à partir de l'image de base
   async generateImageFromBase(generateData: GenerateRequest & { baseImageId: number }): Promise<Photo> {
+            generateData.type = 'img2img';
     try {
       const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/images/generate`, {
         method: 'POST',

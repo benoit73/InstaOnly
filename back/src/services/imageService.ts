@@ -87,6 +87,7 @@ export class ImageService {
 
       let result: any;
       if (type === "img2img") {
+        console.log('img2img');
         if (!account.mainImage) throw new Error('No main image found for this account. Please generate a main image first.');
         let imageForImg2Img: any;
         if (init_images_id) {
@@ -107,6 +108,7 @@ export class ImageService {
           seed: account.mainImage.seed,
         });
       } else {
+        console.log('txt2img');
         result = await this.stableDiffusionService.txt2img({
           prompt,
           negative_prompt,

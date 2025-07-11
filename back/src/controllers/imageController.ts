@@ -12,6 +12,8 @@ export class ImageController {
 
   // Générer une image
   async generateImg(req: Request, res: Response): Promise<void> {
+    console.log('req.body');
+    console.log(req.body);
     const user = req.user as AuthenticatedUser | undefined;
     if (!user) {
       res.status(401).json({
