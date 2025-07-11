@@ -14,6 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+                <link rel="icon" type="image/png" sizes="32x32" href="https://static2.onlyfans.com/static/prod/f/202507101037-e0353341e3/icons/favicon-32x32.png"></link>
+      </head>
       <body>{children}</body>
     </html>
   )
